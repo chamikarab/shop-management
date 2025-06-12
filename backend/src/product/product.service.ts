@@ -9,7 +9,19 @@ export class ProductService {
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
   ) {}
 
-  create(product: Partial<Product>) {
+  async create(product: Partial<Product>) {
+    // Check if product already exists by name (case-insensitive)
+    const existing = await this.productModel.findOne({
+      name: { $regex: new RegExp(`^${product.name}$`, 'i') },
+    });
+
+    if (existing) {
+      // Increase stock instead of creating duplicate
+      existing.stock += product.stock || 0;
+      return existing.save();
+    }
+
+    // Create new product
     return this.productModel.create(product);
   }
 
