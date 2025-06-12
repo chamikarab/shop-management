@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type Product = {
   _id: string;
@@ -24,7 +25,6 @@ export default function ProductsPage() {
     fetchProducts();
   }, []);
 
-  // ✅ ADD PRODUCT FORM
   const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
@@ -36,7 +36,6 @@ export default function ProductsPage() {
     );
 
     if (existing) {
-      // Increase stock
       await fetch(`http://localhost:3000/products/${existing._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -45,8 +44,8 @@ export default function ProductsPage() {
           stock: existing.stock + stockToAdd,
         }),
       });
+      toast.success(`Stock increased for "${existing.name}"`);
     } else {
-      // Create new
       const data = {
         name,
         category: form.category.value,
@@ -60,13 +59,13 @@ export default function ProductsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
+      toast.success(`Product "${data.name}" added`);
     }
 
     form.reset();
     fetchProducts();
   };
 
-  // ✅ UPDATE PRODUCT FORM
   const handleUpdateProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editing) return;
@@ -86,8 +85,38 @@ export default function ProductsPage() {
       body: JSON.stringify(updatedProduct),
     });
 
+    toast.success(`Product "${updatedProduct.name}" updated`);
     setEditing(null);
     fetchProducts();
+  };
+
+  const handleDelete = async (product: Product) => {
+    if (confirm(`Delete "${product.name}"?`)) {
+      await fetch(`http://localhost:3000/products/${product._id}`, {
+        method: "DELETE",
+      });
+      toast.success(`Product "${product.name}" deleted`);
+      fetchProducts();
+    }
+  };
+
+  const handleIncreaseStock = async (product: Product) => {
+    const amountStr = prompt(`Enter stock to add to "${product.name}"`);
+    const amount = parseInt(amountStr || "0");
+    if (!isNaN(amount) && amount > 0) {
+      await fetch(`http://localhost:3000/products/${product._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...product,
+          stock: product.stock + amount,
+        }),
+      });
+      toast.success(`Stock increased by ${amount} for "${product.name}"`);
+      fetchProducts();
+    } else {
+      toast.warning("Invalid stock value.");
+    }
   };
 
   return (
@@ -98,29 +127,14 @@ export default function ProductsPage() {
       <form className="space-x-2" onSubmit={handleAddProduct}>
         <input name="name" placeholder="Name" required className="p-2 border" />
         <input name="category" placeholder="Category" className="p-2 border" />
-        <input
-          name="price"
-          type="number"
-          placeholder="Price"
-          required
-          className="p-2 border"
-        />
-        <input
-          name="stock"
-          type="number"
-          placeholder="Stock"
-          required
-          className="p-2 border"
-        />
+        <input name="price" type="number" placeholder="Price" required className="p-2 border" />
+        <input name="stock" type="number" placeholder="Stock" required className="p-2 border" />
         <select name="status" className="p-2 border">
           <option value="Available">Available</option>
           <option value="Out of Stock">Out of Stock</option>
           <option value="Unavailable">Unavailable</option>
         </select>
-        <button
-          type="submit"
-          className="bg-green-600 text-white px-4 py-2 rounded"
-        >
+        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
           Add Product
         </button>
       </form>
@@ -137,58 +151,37 @@ export default function ProductsPage() {
             <th className="p-2 border">Action</th>
           </tr>
         </thead>
-          <tbody>
-            {products.map((product) => (
-              <tr key={product._id} className="text-center">
-                <td className="p-2 border">{product.name}</td>
-                <td className="p-2 border">{product.category || "-"}</td>
-                <td className="p-2 border">Rs. {product.price}</td>
-                <td className="p-2 border">{product.stock}</td>
-                <td className="p-2 border">{product.status}</td>
-                <td className="p-2 border space-x-2">
-                  <button
-                    onClick={() => setEditing(product)}
-                    className="bg-yellow-500 text-white px-3 py-1 rounded"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={async () => {
-                      if (confirm(`Delete "${product.name}"?`)) {
-                        await fetch(`http://localhost:3000/products/${product._id}`, {
-                          method: "DELETE",
-                        });
-                        fetchProducts(); // Refresh the list
-                      }
-                    }}
-                    className="bg-red-600 text-white px-3 py-1 rounded"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={async () => {
-                      const amountStr = prompt(`Enter stock to add to "${product.name}"`);
-                      const amount = parseInt(amountStr || "0");
-                      if (!isNaN(amount) && amount > 0) {
-                        await fetch(`http://localhost:3000/products/${product._id}`, {
-                          method: "PUT",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            ...product,
-                            stock: product.stock + amount,
-                          }),
-                        });
-                        fetchProducts(); // refresh
-                      }
-                    }}
-                    className="bg-blue-600 text-white px-3 py-1 rounded"
-                  >
-                    + Stock
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+        <tbody>
+          {products.map((product) => (
+            <tr key={product._id} className="text-center">
+              <td className="p-2 border">{product.name}</td>
+              <td className="p-2 border">{product.category || "-"}</td>
+              <td className="p-2 border">Rs. {product.price}</td>
+              <td className="p-2 border">{product.stock}</td>
+              <td className="p-2 border">{product.status}</td>
+              <td className="p-2 border space-x-2">
+                <button
+                  onClick={() => setEditing(product)}
+                  className="bg-yellow-500 text-white px-3 py-1 rounded"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(product)}
+                  className="bg-red-600 text-white px-3 py-1 rounded"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={() => handleIncreaseStock(product)}
+                  className="bg-blue-600 text-white px-3 py-1 rounded"
+                >
+                  + Stock
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
       </table>
 
       {/* Edit Product Form */}
@@ -233,10 +226,7 @@ export default function ProductsPage() {
             <option value="Unavailable">Unavailable</option>
           </select>
           <div className="flex gap-2">
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-4 py-2 rounded"
-            >
+            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
               Update
             </button>
             <button
