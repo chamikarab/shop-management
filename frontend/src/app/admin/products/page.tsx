@@ -35,6 +35,9 @@ export default function ProductsPage() {
       (p) => p.name.toLowerCase() === name.toLowerCase()
     );
 
+    const calculatedStatus =
+      stockToAdd === 0 ? "Out of Stock" : form.status.value;
+
     if (existing) {
       await fetch(`http://localhost:3000/products/${existing._id}`, {
         method: "PUT",
@@ -51,7 +54,7 @@ export default function ProductsPage() {
         category: form.category.value,
         price: parseFloat(form.price.value),
         stock: stockToAdd,
-        status: form.status.value,
+        status: calculatedStatus,
       };
 
       await fetch("http://localhost:3000/products", {
@@ -71,12 +74,16 @@ export default function ProductsPage() {
     if (!editing) return;
 
     const form = e.target as HTMLFormElement;
+    const updatedStock = parseInt(form.stock.value);
+    const updatedStatus =
+      updatedStock === 0 ? "Out of Stock" : form.status.value;
+
     const updatedProduct = {
       name: form.name.value,
       category: form.category.value,
       price: parseFloat(form.price.value),
-      stock: parseInt(form.stock.value),
-      status: form.status.value,
+      stock: updatedStock,
+      status: updatedStatus,
     };
 
     await fetch(`http://localhost:3000/products/${editing._id}`, {
@@ -110,6 +117,7 @@ export default function ProductsPage() {
         body: JSON.stringify({
           ...product,
           stock: product.stock + amount,
+          status: product.stock + amount > 0 ? "Available" : product.status,
         }),
       });
       toast.success(`Stock increased by ${amount} for "${product.name}"`);
@@ -134,7 +142,7 @@ export default function ProductsPage() {
           <option value="Out of Stock">Out of Stock</option>
           <option value="Unavailable">Unavailable</option>
         </select>
-        <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">
+        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
           Add Product
         </button>
       </form>
@@ -162,19 +170,19 @@ export default function ProductsPage() {
               <td className="p-2 border space-x-2">
                 <button
                   onClick={() => setEditing(product)}
-                  className="bg-yellow-500 text-white px-3 py-1 rounded"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(product)}
-                  className="bg-red-600 text-white px-3 py-1 rounded"
+                  className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
                 >
                   Delete
                 </button>
                 <button
                   onClick={() => handleIncreaseStock(product)}
-                  className="bg-blue-600 text-white px-3 py-1 rounded"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded"
                 >
                   + Stock
                 </button>
