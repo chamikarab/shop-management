@@ -1,6 +1,7 @@
-// src/app/admin/page.tsx
 "use client";
+
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type SummaryData = {
   totalProducts: number;
@@ -15,24 +16,63 @@ export default function AdminDashboard() {
     totalOrders: 0,
   });
 
-  useEffect(() => {
-    // Replace with real API endpoints
-    const fetchData = async () => {
-      const [productsRes, usersRes, ordersRes] = await Promise.all([
-        fetch("http://localhost:3000/products").then((r) => r.json()),
-        fetch("http://localhost:3000/users").then((r) => r.json()),
-        fetch("http://localhost:3000/orders").then((r) => r.json()),
-      ]);
+  const [loading, setLoading] = useState(true);
 
-      setSummary({
-        totalProducts: productsRes.length,
-        totalUsers: usersRes.length,
-        totalOrders: ordersRes.length,
-      });
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        let res = await fetch("/api/me", { credentials: "include" });
+
+        if (!res.ok) {
+          // Attempt to refresh if access token is expired
+          const refreshRes = await fetch("/api/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
+
+          if (!refreshRes.ok) throw new Error("Refresh failed");
+
+          res = await fetch("/api/me", { credentials: "include" });
+          if (!res.ok) throw new Error("Still unauthorized");
+        }
+
+        // Fetch data in parallel
+        const [productsRes, usersRes, ordersRes] = await Promise.all([
+          fetch("http://localhost:3000/products", {
+            credentials: "include",
+          }).then((r) => r.json()),
+          fetch("http://localhost:3000/users", {
+            credentials: "include",
+          }).then((r) => r.json()),
+          fetch("http://localhost:3000/orders", {
+            credentials: "include",
+          }).then((r) => r.json()),
+        ]);
+
+        setSummary({
+          totalProducts: productsRes.length || 0,
+          totalUsers: usersRes.length || 0,
+          totalOrders: ordersRes.length || 0,
+        });
+      } catch (err) {
+        console.error("Dashboard fetch failed:", err);
+        toast.error("Session expired. Please login again.");
+        window.location.href = "/login";
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-xl">
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -41,15 +81,21 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-lg shadow text-center border">
           <h2 className="text-xl font-semibold mb-2">Total Products</h2>
-          <p className="text-3xl font-bold text-blue-600">{summary.totalProducts}</p>
+          <p className="text-3xl font-bold text-blue-600">
+            {summary.totalProducts}
+          </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow text-center border">
           <h2 className="text-xl font-semibold mb-2">Total Users</h2>
-          <p className="text-3xl font-bold text-green-600">{summary.totalUsers}</p>
+          <p className="text-3xl font-bold text-green-600">
+            {summary.totalUsers}
+          </p>
         </div>
         <div className="bg-white p-6 rounded-lg shadow text-center border">
           <h2 className="text-xl font-semibold mb-2">Total Orders</h2>
-          <p className="text-3xl font-bold text-purple-600">{summary.totalOrders}</p>
+          <p className="text-3xl font-bold text-purple-600">
+            {summary.totalOrders}
+          </p>
         </div>
       </div>
     </div>
