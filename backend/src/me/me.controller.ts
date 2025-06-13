@@ -8,22 +8,24 @@ export class MeController {
 
   @Get('me')
   async getMe(@Req() req: Request) {
+    // ✅ Try to get token from either cookie or Authorization header
     const cookieToken = req.cookies?.['access_token'];
     const headerToken = req.headers.authorization?.replace('Bearer ', '');
     const token = cookieToken || headerToken;
 
     if (!token) {
-      throw new UnauthorizedException('No token provided');
+      throw new UnauthorizedException('No access token provided');
     }
 
     try {
       const user = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
-      return { user };
-    } catch (err) {
-      console.error('JWT verify error:', err);
-      throw new UnauthorizedException('Invalid token');
+
+      return { user }; // You can limit returned fields here if needed
+    } catch (error) {
+      console.error('❌ Invalid token in /api/me:', error?.message || error);
+      throw new UnauthorizedException('Invalid or expired token');
     }
   }
 }
