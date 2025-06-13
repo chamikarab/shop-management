@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 import * as bcrypt from 'bcrypt';
 
-export type UserDocument = User & Document;
+export type UserDocument = User & Document & { _id: string };
 
 @Schema({ timestamps: true })
 export class User {
@@ -20,11 +20,14 @@ export class User {
 
   @Prop({ required: true, enum: ['admin', 'cashier', 'manager'] })
   role: string;
+
+  @Prop({ type: [String], default: [] })
+  permissions: string[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// 🔐 Secure password hashing before saving
+// Secure password hashing before saving
 UserSchema.pre<UserDocument>('save', async function (next) {
   // `this` is the document
   if (!this.isModified('password')) return next();
