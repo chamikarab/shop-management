@@ -3,27 +3,34 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get('access_token')?.value;
 
-  // If access_token is missing, try refreshing it
+  // ✅ If access token is missing, attempt to refresh it
   if (!accessToken) {
-    const refreshResponse = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        cookie: req.headers.get('cookie') || '',
-      },
-    });
+    try {
+      const refreshResponse = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          // Forward cookies for refresh token
+          cookie: req.headers.get('cookie') || '',
+        },
+      });
 
-    if (refreshResponse.ok) {
-      // Allow request to proceed
-      return NextResponse.next();
-    } else {
-      // Redirect to login if refresh fails
+      if (refreshResponse.ok) {
+        // ✅ Proceed if token refreshed successfully
+        return NextResponse.next();
+      } else {
+        console.warn('❌ Refresh failed, redirecting to login');
+        return NextResponse.redirect(new URL('/login', req.url));
+      }
+    } catch (err) {
+      console.error('❌ Refresh error:', err);
       return NextResponse.redirect(new URL('/login', req.url));
     }
   }
 
-  // Allow access if token is present
+  // ✅ Token exists, allow access
   return NextResponse.next();
 }
+
 export const config = {
-  matcher: ['/admin/:path*'], // 🔐 Apply only to admin pages (or adjust as needed)
+  matcher: ['/admin/:path*'], // 🔐 Restrict middleware to admin routes
 };
