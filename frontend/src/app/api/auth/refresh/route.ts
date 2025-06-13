@@ -3,38 +3,51 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
 
   if (!refreshToken) {
-    return NextResponse.json({ message: "No refresh token" }, { status: 401 });
+    return NextResponse.json(
+      { message: "No refresh token provided" },
+      { status: 401 }
+    );
   }
 
   try {
-    const res = await fetch("http://localhost:3000/auth/refresh", {
+    const backendRes = await fetch("http://localhost:3000/auth/refresh", {
       method: "POST",
       headers: {
         Cookie: `refresh_token=${refreshToken}`,
       },
     });
 
-    if (!res.ok) {
-      return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
+    if (!backendRes.ok) {
+      const error = await backendRes.json();
+      return NextResponse.json(
+        { message: error.message || "Refresh failed" },
+        { status: 401 }
+      );
     }
 
-    const setCookies = res.headers.getSetCookie();
+    const setCookies = backendRes.headers.getSetCookie();
+    const response = NextResponse.json({ message: "Token refreshed" });
+
     if (setCookies) {
-      const response = NextResponse.json({ message: "Token refreshed" });
-      response.headers.set("Set-Cookie", setCookies);
-      return response;
+      if (Array.isArray(setCookies)) {
+        setCookies.forEach(cookie => {
+          response.headers.append("Set-Cookie", cookie);
+        });
+      } else {
+        response.headers.set("Set-Cookie", setCookies);
+      }
     }
 
+    return response;
+  } catch (error) {
+    console.error("🔴 Refresh route error:", error);
     return NextResponse.json(
-      { message: "No cookie returned" },
+      { message: "Internal server error" },
       { status: 500 }
     );
-  } catch (err) {
-    console.error("Error during refresh:", err);
-    return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
