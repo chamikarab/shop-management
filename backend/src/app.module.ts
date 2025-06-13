@@ -5,13 +5,17 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProductModule } from './product/product.module';
 import { UserModule } from './user/user.module';
+import { AuthModule } from './auth/auth.module';
+import { MeModule } from './me/me.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), // 🔑 Loads .env file
+    ConfigModule.forRoot(),
     MongooseModule.forRoot(process.env.MONGO_URI as string),
-    ProductModule, // 🔗 Connects to MongoDB
+    ProductModule,
     UserModule,
+    AuthModule,
+    MeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
