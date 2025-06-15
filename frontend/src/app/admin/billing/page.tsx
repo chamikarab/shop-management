@@ -10,6 +10,8 @@ interface Product {
   price: number;
   quantity: number;
   stock: number;
+  size?: string;
+  packaging?: string;
   discount?: number;
   discountType?: "flat" | "percentage";
   free?: boolean;
@@ -48,6 +50,8 @@ export default function BillingPage() {
             name: p.name,
             price: p.price,
             stock: p.stock,
+            size: p.size,
+            packaging: p.packaging,
             quantity: 1,
             discount: 0,
             discountType: "flat",
@@ -226,6 +230,7 @@ export default function BillingPage() {
             onClick={() => addToCart(product)}
           >
             <h2 className="font-semibold">{product.name}</h2>
+            <h2 className="font-semibold">{product.size} - {product.packaging}</h2>
             <p>Rs. {product.price.toFixed(2)}</p>
             <p className="text-sm text-gray-500">Stock: {product.stock}</p>
             {product.stock <= 10 && product.stock > 0 && (
@@ -243,10 +248,11 @@ export default function BillingPage() {
         <thead className="bg-gray-100">
           <tr>
             <th className="p-2">Product</th>
+            <th className="p-2">Size</th>
             <th className="p-2">Qty</th>
             <th className="p-2">Price</th>
             <th className="p-2">Discount</th>
-            <th className="p-2">Free?</th>
+            <th className="p-2">Free</th>
             <th className="p-2">Subtotal</th>
             <th className="p-2">Action</th>
           </tr>
@@ -267,6 +273,7 @@ export default function BillingPage() {
             return (
               <tr key={item.id}>
                 <td className="p-2">{item.name}</td>
+                <td className="p-2">{item.size} - {item.packaging}</td>
                 <td className="p-2">
                   <div className="qty-controls">
                     <button onClick={() => decreaseQty(item.id)}>-</button>
@@ -351,10 +358,15 @@ export default function BillingPage() {
           Grand Total: Rs. {grandTotal.toFixed(2)}
         </h3>
         <button
-          onClick={() => setShowModal(true)}
-          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        onClick={() => setShowModal(true)}
+        disabled={cart.length === 0}
+        className={`mt-2 px-4 py-2 rounded text-white ${
+            cart.length === 0
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
         >
-          Checkout
+        Checkout
         </button>
       </div>
 
@@ -404,7 +416,7 @@ export default function BillingPage() {
                 <ul>
                 {cart.map((item) => (
                     <li key={item.id} className="mb-1">
-                    {item.quantity}x {item.name} - Rs. {item.price.toFixed(2)}
+                    {item.quantity}x {item.name} - {item.size} ({item.packaging}) - Rs. {item.price.toFixed(2)}
                     {item.free && (
                         <span className="ml-2 text-green-600 font-medium">(Free)</span>
                     )}
