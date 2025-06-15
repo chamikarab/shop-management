@@ -6,6 +6,8 @@ type Product = {
   _id: string;
   name: string;
   category?: string;
+  size?: string;
+  packaging?: string;
   price: number;
   stock: number;
   status?: string;
@@ -52,6 +54,8 @@ export default function ProductsPage() {
       const data = {
         name,
         category: form.category.value,
+        size: form.size.value,
+        packaging: form.packaging.value,
         price: parseFloat(form.price.value),
         stock: stockToAdd,
         status: calculatedStatus,
@@ -81,6 +85,8 @@ export default function ProductsPage() {
     const updatedProduct = {
       name: form.name.value,
       category: form.category.value,
+      size: form.size.value,
+      packaging: form.packaging.value,
       price: parseFloat(form.price.value),
       stock: updatedStock,
       status: updatedStatus,
@@ -135,6 +141,17 @@ export default function ProductsPage() {
       <form className="space-x-2" onSubmit={handleAddProduct}>
         <input name="name" placeholder="Name" required className="p-2 border" />
         <input name="category" placeholder="Category" className="p-2 border" />
+        <select name="size" className="p-2 border" required>
+          <option value="">Size</option>
+          <option value="500ml">500ml</option>
+          <option value="330ml">330ml</option>
+          <option value="750ml">750ml</option>
+        </select>
+        <select name="packaging" className="p-2 border" required>
+          <option value="">Packaging</option>
+          <option value="Can">Can</option>
+          <option value="Bottle">Bottle</option>
+        </select>
         <input name="price" type="number" placeholder="Price" required className="p-2 border" />
         <input name="stock" type="number" placeholder="Stock" required className="p-2 border" />
         <select name="status" className="p-2 border">
@@ -153,6 +170,8 @@ export default function ProductsPage() {
           <tr className="bg-gray-200 text-center">
             <th className="p-2 border">Name</th>
             <th className="p-2 border">Category</th>
+            <th className="p-2 border">Size</th>
+            <th className="p-2 border">Packaging</th>
             <th className="p-2 border">Price</th>
             <th className="p-2 border">Stock</th>
             <th className="p-2 border">Status</th>
@@ -164,6 +183,8 @@ export default function ProductsPage() {
             <tr key={product._id} className="text-center">
               <td className="p-2 border">{product.name}</td>
               <td className="p-2 border">{product.category || "-"}</td>
+              <td className="p-2 border">{product.size || "-"}</td>
+              <td className="p-2 border">{product.packaging || "-"}</td>
               <td className="p-2 border">Rs. {product.price}</td>
               <td className="p-2 border">{product.stock}</td>
               <td className="p-2 border">{product.status}</td>
@@ -210,6 +231,27 @@ export default function ProductsPage() {
             defaultValue={editing.category}
             className="p-2 border w-full text-black bg-white"
           />
+          <select
+            name="size"
+            defaultValue={editing.size}
+            className="p-2 border w-full text-black bg-white"
+            required
+          >
+            <option value="">Select Size</option>
+            <option value="500ml">500ml</option>
+            <option value="330ml">330ml</option>
+            <option value="750ml">750ml</option>
+          </select>
+          <select
+            name="packaging"
+            defaultValue={editing.packaging}
+            className="p-2 border w-full text-black bg-white"
+            required
+          >
+            <option value="">Select Packaging</option>
+            <option value="Can">Can</option>
+            <option value="Bottle">Bottle</option>
+          </select>
           <input
             name="price"
             type="number"
