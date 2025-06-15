@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import "../styles/billing.css";
 
 interface Product {
@@ -21,6 +22,12 @@ export default function BillingPage() {
   const [discount, setDiscount] = useState<number | "">("");
   const [isPercentage, setIsPercentage] = useState<boolean>(false);
 
+  const [showModal, setShowModal] = useState(false);
+  const [customerName, setCustomerName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [paymentType, setPaymentType] = useState("Cash");
+  const [cashGiven, setCashGiven] = useState<number>(0);
+
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -34,8 +41,6 @@ export default function BillingPage() {
         }
 
         const data = await res.json();
-        console.log("✅ Raw products:", data);
-
         const mapped = data
           .filter((p: any) => p.status?.toLowerCase() === "available")
           .map((p: any) => ({
@@ -49,7 +54,6 @@ export default function BillingPage() {
             free: false,
           }));
 
-        console.log("✅ Mapped available products:", mapped);
         setProducts(mapped);
       } catch (err) {
         console.error("❌ Error loading products:", err);
@@ -63,55 +67,94 @@ export default function BillingPage() {
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const addToCart = (product: Product) => {
-    setCart((prev) => {
-      const exists = prev.find((item) => item.id === product.id);
-      if (exists) {
+    const addToCart = (product: Product) => {
+    if (product.stock <= 0) return;
+
+    const exists = cart.find((item) => item.id === product.id);
+    if (exists) {
         if (exists.quantity < product.stock) {
-          return prev.map((item) =>
+        setCart((prev) =>
+            prev.map((item) =>
             item.id === product.id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
-          );
-        } else {
-          return prev;
+                ? { ...item, quantity: item.quantity + 1 }
+                : item
+            )
+        );
         }
-      }
-      return [...prev, { ...product }];
-    });
-  };
+    } else {
+        setCart((prev) => [...prev, { ...product, quantity: 1 }]);
+    }
 
-  const updateCartItem = (id: string, updates: Partial<Product>) => {
-    setCart((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
-  };
-
-  const increaseQty = (id: string) => {
-    setCart((prev) =>
-      prev.map((item) =>
-        item.id === id && item.quantity < item.stock
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      )
-    );
-  };
-
-  const decreaseQty = (id: string) => {
-    setCart((prev) =>
-      prev
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: Math.max(1, item.quantity - 1) }
-            : item
+    // ↓ Decrease product stock in UI
+    setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+        p.id === product.id ? { ...p, stock: p.stock - 1 } : p
         )
-        .filter((item) => item.quantity > 0)
     );
-  };
+    };
 
-  const removeFromCart = (id: string) => {
+    const increaseQty = (id: string) => {
+    setCart((prevCart) =>
+        prevCart.map((item) => {
+            const product = products.find((p) => p.id === id);
+            if (item.id === id && product && item.quantity < product.stock) {
+                return { ...item, quantity: item.quantity + 1 };
+            }
+            return item;
+        })
+    );
+
+    setProducts((prevProducts) =>
+        prevProducts.map((p) =>
+        p.id === id ? { ...p, stock: p.stock - 1 } : p
+        )
+    );
+    };
+
+    const decreaseQty = (id: string) => {
+    const item = cart.find((i) => i.id === id);
+    if (!item) return;
+
+    if (item.quantity === 1) {
+        // Restore 1 to stock before removing from cart
+        setProducts((prev) =>
+        prev.map((p) =>
+            p.id === id ? { ...p, stock: p.stock + 1 } : p
+        )
+        );
+        setCart((prev) => prev.filter((i) => i.id !== id));
+    } else {
+        // Restore 1 to stock for decrement
+        setCart((prev) =>
+        prev.map((i) =>
+            i.id === id ? { ...i, quantity: i.quantity - 1 } : i
+        )
+        );
+        setProducts((prev) =>
+        prev.map((p) =>
+            p.id === id ? { ...p, stock: p.stock + 1 } : p
+        )
+        );
+    }
+    };
+
+    const updateCartItem = (id: string, updates: Partial<Product>) => {
+    setCart((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+    };
+
+    const removeFromCart = (id: string) => {
+    const item = cart.find((i) => i.id === id);
+    if (item) {
+        setProducts((prev) =>
+        prev.map((p) =>
+            p.id === id ? { ...p, stock: p.stock + item.quantity } : p
+        )
+        );
+    }
     setCart((prev) => prev.filter((item) => item.id !== id));
-  };
+    };
 
   const totalBeforeDiscount = cart.reduce((sum, item) => {
     if (item.free) return sum;
@@ -128,39 +171,71 @@ export default function BillingPage() {
       : Number(discount) || 0;
 
   const grandTotal = totalBeforeDiscount - discountValue;
+  const balance = cashGiven - grandTotal;
+
+  const confirmOrder = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          items: cart,
+          total: grandTotal,
+          customerName,
+          phoneNumber,
+          paymentType,
+          cashGiven,
+          balance,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to place order");
+
+      toast.success("Order placed successfully!");
+      setCart([]);
+      setDiscount("");
+      setIsPercentage(false);
+      setShowModal(false);
+      setCustomerName("");
+      setPhoneNumber("");
+      setCashGiven(0);
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast.error("Checkout failed");
+    }
+  };
 
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">🧾 Billing System (POS)</h1>
 
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search or scan product..."
-          className="border p-2 rounded w-full"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <input
+        type="text"
+        placeholder="Search or scan product..."
+        className="border p-2 rounded w-full mb-4"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {filteredProducts.length === 0 ? (
-          <p className="text-sm text-gray-500 col-span-3">
-            No products found or available.
-          </p>
-        ) : (
-          filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="border rounded p-4 shadow hover:bg-gray-100 cursor-pointer"
-              onClick={() => addToCart(product)}
-            >
-              <h2 className="font-semibold">{product.name}</h2>
-              <p>Rs. {product.price.toFixed(2)}</p>
-              <p className="text-sm text-gray-500">Stock: {product.stock}</p>
-            </div>
-          ))
-        )}
+        {filteredProducts.map((product) => (
+          <div
+            key={product.id}
+            className={`border rounded p-4 shadow cursor-pointer relative ${product.stock === 0 ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-100'}`}
+            onClick={() => addToCart(product)}
+          >
+            <h2 className="font-semibold">{product.name}</h2>
+            <p>Rs. {product.price.toFixed(2)}</p>
+            <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+            {product.stock <= 10 && product.stock > 0 && (
+              <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">Low Stock</span>
+            )}
+            {product.stock === 0 && (
+              <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">Out of Stock</span>
+            )}
+          </div>
+        ))}
       </div>
 
       <h2 className="text-xl font-semibold mb-2">🛒 Cart</h2>
@@ -171,18 +246,19 @@ export default function BillingPage() {
             <th className="p-2">Qty</th>
             <th className="p-2">Price</th>
             <th className="p-2">Discount</th>
-            <th className="p-2">Free</th>
+            <th className="p-2">Free?</th>
             <th className="p-2">Subtotal</th>
             <th className="p-2">Action</th>
           </tr>
         </thead>
         <tbody>
           {cart.map((item) => {
-            const discountAmount = item.free
-              ? 0
-              : item.discountType === "percentage"
-              ? ((item.discount || 0) / 100) * item.price * item.quantity
-              : (item.discount || 0) * item.quantity;
+            const discountAmount =
+              item.free
+                ? 0
+                : item.discountType === "percentage"
+                ? ((item.discount || 0) / 100) * item.price * item.quantity
+                : (item.discount || 0) * item.quantity;
 
             const subtotal = item.free
               ? 0
@@ -199,12 +275,11 @@ export default function BillingPage() {
                   </div>
                 </td>
                 <td className="p-2">Rs. {item.price.toFixed(2)}</td>
-                <td className="p-2 flex items-center gap-1">
+                <td className="p-2">
                   <input
                     type="number"
                     className="border p-1 rounded w-16"
-                    placeholder="0"
-                    value={item.discount === 0 ? "" : item.discount ?? ""}
+                    value={item.discount || ""}
                     onChange={(e) =>
                       updateCartItem(item.id, {
                         discount: Number(e.target.value),
@@ -212,7 +287,7 @@ export default function BillingPage() {
                     }
                   />
                   <select
-                    className="border p-1 rounded"
+                    className="ml-1 border p-1 rounded"
                     value={item.discountType}
                     onChange={(e) =>
                       updateCartItem(item.id, {
@@ -258,7 +333,9 @@ export default function BillingPage() {
             className="border p-2 rounded w-32"
             placeholder="Discount"
             value={discount}
-            onChange={(e) => setDiscount(e.target.value)}
+            onChange={(e) =>
+              setDiscount(e.target.value === "" ? "" : Number(e.target.value))
+            }
           />
           <select
             className="border p-2 rounded"
@@ -273,10 +350,97 @@ export default function BillingPage() {
         <h3 className="text-lg font-semibold">
           Grand Total: Rs. {grandTotal.toFixed(2)}
         </h3>
-        <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+        <button
+          onClick={() => setShowModal(true)}
+          className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
           Checkout
         </button>
       </div>
+
+        {showModal && (
+        <div className="custom-modal">
+            <div className="modal-content">
+            <h2 className="text-xl font-bold mb-4">Checkout</h2>
+            <input
+                className="border p-2 rounded w-full mb-2"
+                placeholder="Customer Name (optional)"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+            />
+            <input
+                className="border p-2 rounded w-full mb-2"
+                placeholder="Phone Number (optional)"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+            <select
+                className="border p-2 rounded w-full mb-2"
+                value={paymentType}
+                onChange={(e) => setPaymentType(e.target.value)}
+            >
+                <option>Cash</option>
+                <option>Card</option>
+                <option>Online</option>
+            </select>
+                <input
+                type="text"
+                inputMode="decimal"
+                className="border p-2 rounded w-full mb-2"
+                placeholder="Cash Given"
+                value={cashGiven}
+                onChange={(e) => setCashGiven(Number(e.target.value))}
+                />
+            <p className="mb-4">
+                Balance:{" "}
+                <span className={balance < 0 ? "text-red-600 font-bold" : ""}>
+                Rs. {balance.toFixed(2)}
+                </span>
+            </p>
+
+            {/* ✅ Added product list in modal */}
+            <div className="mb-4 max-h-40 overflow-y-auto text-sm bg-gray-50 p-2 rounded border">
+                <h3 className="font-semibold mb-2">Products:</h3>
+                <ul>
+                {cart.map((item) => (
+                    <li key={item.id} className="mb-1">
+                    {item.quantity}x {item.name} - Rs. {item.price.toFixed(2)}
+                    {item.free && (
+                        <span className="ml-2 text-green-600 font-medium">(Free)</span>
+                    )}
+                    {item.discount ? (
+                        <span className="ml-2 text-yellow-600 text-xs">
+                        - {item.discount}
+                        {item.discountType === "percentage" ? "%" : " Rs."} discount
+                        </span>
+                    ) : null}
+                    </li>
+                ))}
+                </ul>
+            </div>
+
+            <div className="flex justify-end gap-2">
+                <button
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 border rounded"
+                >
+                Cancel
+                </button>
+                <button
+                onClick={confirmOrder}
+                className={`px-4 py-2 rounded text-white ${
+                    cashGiven >= grandTotal
+                    ? "bg-green-600 hover:bg-green-700"
+                    : "bg-gray-400 cursor-not-allowed"
+                }`}
+                disabled={cashGiven < grandTotal}
+                >
+                Confirm Order
+                </button>
+            </div>
+            </div>
+        </div>
+        )}
     </div>
   );
 }
