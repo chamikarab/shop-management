@@ -10,13 +10,14 @@ export class ProductService {
   ) {}
 
   async create(product: Partial<Product>) {
-    // Check if product already exists by name (case-insensitive)
+    // Check for existing product with same name, size, and packaging (case-insensitive)
     const existing = await this.productModel.findOne({
       name: { $regex: new RegExp(`^${product.name}$`, 'i') },
+      size: product.size,
+      packaging: { $regex: new RegExp(`^${product.packaging}$`, 'i') },
     });
 
     if (existing) {
-      // Increase stock instead of creating duplicate
       existing.stock += product.stock || 0;
       return existing.save();
     }

@@ -12,6 +12,12 @@ export class Product {
   category: string;
 
   @Prop({ required: true })
+  size: string; // e.g., "750ml", "500ml"
+
+  @Prop({ required: true })
+  packaging: string; // e.g., "Bottle", "Can"
+
+  @Prop({ required: true })
   price: number;
 
   @Prop({ required: true })
