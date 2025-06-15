@@ -19,6 +19,8 @@ export default function AddProductPage() {
       price: parseFloat(form.price.value),
       stock: parseInt(form.stock.value),
       status: form.status.value,
+      size: form.size.value,
+      packaging: form.packaging.value,
     };
 
     if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
@@ -79,6 +81,17 @@ export default function AddProductPage() {
           required
           className="w-full p-2 border rounded"
         />
+        <select name="size" required className="w-full p-2 border rounded">
+          <option value="">Select Size</option>
+          <option value="330ml">330ml</option>
+          <option value="500ml">500ml</option>
+          <option value="750ml">750ml</option>
+        </select>
+        <select name="packaging" required className="w-full p-2 border rounded">
+          <option value="">Select Packaging</option>
+          <option value="Can">Can</option>
+          <option value="Bottle">Bottle</option>
+        </select>
         <select name="status" className="w-full p-2 border rounded">
           <option value="Available">Available</option>
           <option value="Out of Stock">Out of Stock</option>
