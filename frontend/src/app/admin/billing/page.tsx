@@ -178,37 +178,45 @@ export default function BillingPage() {
   const balance = cashGiven - grandTotal;
 
   const confirmOrder = async () => {
-    try {
-      const res = await fetch("http://localhost:3000/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          items: cart,
-          total: grandTotal,
-          customerName,
-          phoneNumber,
-          paymentType,
-          cashGiven,
-          balance,
-        }),
-      });
+  try {
+    const res = await fetch("http://localhost:3000/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        items: cart,
+        total: grandTotal,
+        customerName,
+        phoneNumber,
+        paymentType,
+        cashGiven,
+        balance,
+      }),
+    });
 
-      if (!res.ok) throw new Error("Failed to place order");
+    if (!res.ok) throw new Error("Failed to place order");
 
-      toast.success("Order placed successfully!");
-      setCart([]);
-      setDiscount("");
-      setIsPercentage(false);
-      setShowModal(false);
-      setCustomerName("");
-      setPhoneNumber("");
-      setCashGiven(0);
-    } catch (err) {
-      console.error("Checkout error:", err);
-      toast.error("Checkout failed");
-    }
-  };
+    toast.success("Order placed successfully!");
+
+    // ✅ Print first, then clear cart after small delay
+    setTimeout(() => {
+      window.print();
+
+      setTimeout(() => {
+        setCart([]);
+        setDiscount("");
+        setIsPercentage(false);
+        setShowModal(false);
+        setCustomerName("");
+        setPhoneNumber("");
+        setCashGiven(0);
+      }, 500); // give time for print to complete
+    }, 200); // slight delay ensures UI re-renders before print
+  } catch (err) {
+    console.error("Checkout error:", err);
+    toast.error("Checkout failed");
+  }
+};
 
   return (
     <div className="p-6">
@@ -230,7 +238,7 @@ export default function BillingPage() {
             onClick={() => addToCart(product)}
           >
             <h2 className="font-semibold">{product.name}</h2>
-            <h2 className="font-semibold">{product.size} - {product.packaging}</h2>
+            <p className="font-semibold">{product.size} - {product.packaging}</p>
             <p>Rs. {product.price.toFixed(2)}</p>
             <p className="text-sm text-gray-500">Stock: {product.stock}</p>
             {product.stock <= 10 && product.stock > 0 && (
@@ -449,10 +457,53 @@ export default function BillingPage() {
                 >
                 Confirm Order
                 </button>
+                <button onClick={() => window.print()}>
+                🖨 Print Invoice
+                </button>
             </div>
             </div>
         </div>
         )}
+       <div id="print-invoice" className="hidden print:block text-sm leading-4">
+            <div className="text-center">
+                <p>************************</p>
+                <p><strong>SISILA BEER SHOP</strong></p>
+                <p>Ankelipitiya, Thalathuoya Rd, Kandy</p>
+                <p>📞 0779574545</p>
+                <p>************************</p>
+            </div>
+
+            <p>Date: {new Date().toLocaleString()}</p>
+            <p>Invoice #: 000{Math.floor(Math.random() * 100000)}</p>
+            <p>Cashier: Admin</p>
+            <hr />
+
+            {cart.map((item) => (
+                <div key={item.id} className="flex justify-between">
+                <div>
+                    <p>{item.name}</p>
+                    <p className="text-xs">
+                    {item.size} / {item.packaging} × {item.quantity}
+                    </p>
+                </div>
+                <div>
+                    <p>Rs. {(item.price * item.quantity).toFixed(2)}</p>
+                </div>
+                </div>
+            ))}
+
+            <hr />
+            <p>Total: Rs. {grandTotal.toFixed(2)}</p>
+            <p>Cash: Rs. {cashGiven.toFixed(2)}</p>
+            <p>Discount: Rs. {discountValue.toFixed(2)}</p>
+            <p>Balance: Rs. {balance.toFixed(2)}</p>
+            <p>Payment: {paymentType}</p>
+
+            <hr />
+            <div className="text-center">
+                <p>**** THANK YOU ****</p>
+            </div>
+        </div>
     </div>
   );
 }

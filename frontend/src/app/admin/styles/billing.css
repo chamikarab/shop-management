@@ -242,3 +242,26 @@ input:checked + .slider:before {
     transform: translateY(0);
   }
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-invoice, #print-invoice * {
+    visibility: visible;
+  }
+
+  #print-invoice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 58mm;
+    font-size: 12px;
+    padding: 10px;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}
