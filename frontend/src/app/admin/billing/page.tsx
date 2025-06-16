@@ -76,36 +76,32 @@ export default function BillingPage() {
 
     const exists = cart.find((item) => item.id === product.id);
     if (exists) {
-        if (exists.quantity < product.stock) {
         setCart((prev) =>
-            prev.map((item) =>
+        prev.map((item) =>
             item.id === product.id
-                ? { ...item, quantity: item.quantity + 1 }
-                : item
-            )
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
         );
-        }
     } else {
         setCart((prev) => [...prev, { ...product, quantity: 1 }]);
     }
 
-    // ↓ Decrease product stock in UI
-    setProducts((prevProducts) =>
-        prevProducts.map((p) =>
+    setProducts((prev) =>
+        prev.map((p) =>
         p.id === product.id ? { ...p, stock: p.stock - 1 } : p
         )
     );
     };
 
     const increaseQty = (id: string) => {
+    const product = products.find((p) => p.id === id);
+    if (!product || product.stock <= 0) return;
+
     setCart((prevCart) =>
-        prevCart.map((item) => {
-            const product = products.find((p) => p.id === id);
-            if (item.id === id && product && item.quantity < product.stock) {
-                return { ...item, quantity: item.quantity + 1 };
-            }
-            return item;
-        })
+        prevCart.map((item) =>
+        item.id === id ? { ...item, quantity: item.quantity + 1 } : item
+        )
     );
 
     setProducts((prevProducts) =>
