@@ -71,6 +71,11 @@ export default function BillingPage() {
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
+    const groupedBySize = ["750ml", "500ml", "330ml"].map((size) => ({
+    size,
+    items: filteredProducts.filter((p) => p.size === size),
+  }));
+
     const addToCart = (product: Product) => {
     if (product.stock <= 0) return;
 
@@ -226,26 +231,41 @@ export default function BillingPage() {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {filteredProducts.map((product) => (
-          <div
-            key={product.id}
-            className={`border rounded p-4 shadow cursor-pointer relative ${product.stock === 0 ? 'opacity-50 pointer-events-none' : 'hover:bg-gray-100'}`}
-            onClick={() => addToCart(product)}
-          >
-            <h2 className="font-semibold">{product.name}</h2>
-            <p className="font-semibold">{product.size} - {product.packaging}</p>
-            <p>Rs. {product.price.toFixed(2)}</p>
-            <p className="text-sm text-gray-500">Stock: {product.stock}</p>
-            {product.stock <= 10 && product.stock > 0 && (
-              <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">Low Stock</span>
-            )}
-            {product.stock === 0 && (
-              <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">Out of Stock</span>
-            )}
+      {groupedBySize.map(({ size, items }) => (
+        <div key={size} className="mb-8">
+          <h2 className="text-lg font-semibold mb-2">{size} Products</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {items.map((product) => (
+              <div
+                key={product.id}
+                className={`border rounded p-4 shadow cursor-pointer relative ${
+                  product.stock === 0
+                    ? "opacity-50 pointer-events-none"
+                    : "hover:bg-gray-100"
+                }`}
+                onClick={() => addToCart(product)}
+              >
+                <h2 className="font-semibold">{product.name}</h2>
+                <p className="font-semibold">
+                  {product.size} - {product.packaging}
+                </p>
+                <p>Rs. {product.price.toFixed(2)}</p>
+                <p className="text-sm text-gray-500">Stock: {product.stock}</p>
+                {product.stock <= 10 && product.stock > 0 && (
+                  <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">
+                    Low Stock
+                  </span>
+                )}
+                {product.stock === 0 && (
+                  <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">
+                    Out of Stock
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
 
       <h2 className="text-xl font-semibold mb-2">🛒 Cart</h2>
       <table className="w-full text-left border">
