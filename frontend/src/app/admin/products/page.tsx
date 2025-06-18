@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import WithPermission from "@/components/WithPermission";
 
 type Product = {
   _id: string;
@@ -13,7 +14,7 @@ type Product = {
   status?: string;
 };
 
-export default function ProductsPage() {
+function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [editing, setEditing] = useState<Product | null>(null);
 
@@ -291,4 +292,11 @@ export default function ProductsPage() {
       )}
     </div>
   );
+}
+  export default function ProtectedProductsPage() {
+    return (
+      <WithPermission required="products:view">
+        <ProductsPage />
+      </WithPermission>
+    );
 }

@@ -4,6 +4,17 @@ import * as bcrypt from 'bcrypt';
 
 export type UserDocument = User & Document & { _id: string };
 
+export type UserRole = 'admin' | 'cashier' | 'manager';
+
+export type PermissionType =
+  | 'dashboard:access'
+  | 'products:view'
+  | 'products:add'
+  | 'products:purchasing'
+  | 'users:view'
+  | 'users:add'
+  | 'orders:view';
+
 @Schema({ timestamps: true })
 export class User {
   @Prop({ required: true })
@@ -19,17 +30,28 @@ export class User {
   nic: string;
 
   @Prop({ required: true, enum: ['admin', 'cashier', 'manager'] })
-  role: string;
+  role: UserRole;
 
-  @Prop({ type: [String], default: [] })
-  permissions: string[];
+  @Prop({
+    type: [String],
+    enum: [
+      'dashboard:access',
+      'products:view',
+      'products:add',
+      'products:purchasing',
+      'users:view',
+      'users:add',
+      'orders:view',
+    ],
+    default: [],
+  })
+  permissions: PermissionType[];
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
 
-// Secure password hashing before saving
+// 🔐 Hash password before saving
 UserSchema.pre<UserDocument>('save', async function (next) {
-  // `this` is the document
   if (!this.isModified('password')) return next();
 
   try {
