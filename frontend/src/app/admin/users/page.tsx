@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import WithPermission from "@/components/WithPermission";
 
 type User = {
   _id: string;
@@ -10,7 +11,7 @@ type User = {
   createdAt: string;
 };
 
-export default function AllUsersPage() {
+function AllUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
 
   const fetchUsers = async () => {
@@ -75,4 +76,11 @@ export default function AllUsersPage() {
       </table>
     </div>
   );
+}
+  export default function ProtectedAllUsersPage() {
+    return (
+      <WithPermission required="users:view">
+        <AllUsersPage />
+      </WithPermission>
+    );
 }

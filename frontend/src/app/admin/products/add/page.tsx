@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import WithPermission from "@/components/WithPermission";
 
-export default function AddProductPage() {
+function AddProductPageContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -107,5 +108,12 @@ export default function AddProductPage() {
         </button>
       </form>
     </div>
+  );
+}
+export default function AddProductPage() {
+  return (
+    <WithPermission required="products:add">
+      <AddProductPageContent />
+    </WithPermission>
   );
 }
