@@ -16,7 +16,7 @@ import "./styles/admin.css";
 
 type User = {
   permissions: string[];
-  // Add other user properties as needed, e.g. id, name, email, etc.
+  // Add other properties like id, email if needed
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -29,39 +29,64 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        // Try to fetch /api/me
-        const res = await fetch("/api/me", { credentials: "include" });
+        const res = await fetch("/api/me", {
+          credentials: "include",
+          cache: "no-store", // 🔥 force fresh data
+        });
 
         if (!res.ok) {
-          // Try refreshing token
+          console.warn("⚠️ /api/me returned error, trying refresh...");
           const refreshRes = await fetch("/api/auth/refresh", {
             method: "POST",
             credentials: "include",
           });
 
           if (!refreshRes.ok) {
-            throw new Error("Unauthorized");
+            console.warn("🔁 Token refresh failed.");
+            router.push("/login");
+            return;
           }
 
-          // Retry fetching user
-          const retry = await fetch("/api/me", { credentials: "include" });
-          if (!retry.ok) throw new Error("Unauthorized after refresh");
+          const retry = await fetch("/api/me", {
+            credentials: "include",
+            cache: "no-store", // 🔥 again force fresh
+          });
+
+          if (!retry.ok) {
+            console.warn("❌ Retry failed after refresh.");
+            router.push("/login");
+            return;
+          }
 
           const retryData = await retry.json();
+          console.log("✅ Logged in (after refresh):", retryData.user);
           setUser(retryData.user);
         } else {
           const data = await res.json();
+          console.log("✅ Logged in:", data.user);
           setUser(data.user);
         }
       } catch (err) {
-        console.error("Failed to load user:", err);
+        console.error("❌ Error fetching user:", err);
         router.push("/login");
       } finally {
         setLoading(false);
       }
     };
 
+    // Always run fresh fetch
     fetchUser();
+
+    // Optional: also listen for storage event (cross-tab updates)
+    const onStorageChange = (e: StorageEvent) => {
+      if (e.key === "forcePermissionReload") {
+        console.log("🔁 Detected permission change from another tab");
+        fetchUser();
+      }
+    };
+
+    window.addEventListener("storage", onStorageChange);
+    return () => window.removeEventListener("storage", onStorageChange);
   }, [router]);
 
   if (loading) {
@@ -73,6 +98,20 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (!user) return null;
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      console.log("🚪 User logged out, tokens cleared");
+    } catch (error) {
+      console.error("❌ Logout error:", error);
+    } finally {
+      router.push("/login");
+    }
+  };
 
   return (
     <div className="admin-layout flex min-h-screen text-black bg-white">
@@ -100,8 +139,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               {!collapsed && "Dashboard"}
             </Link>
 
-            {/* Products */}
-            {user.permissions?.some((p: string) => p.startsWith("products:")) && (
+            {user.permissions?.some((p) => p.startsWith("products:")) && (
               <div className="mt-4">
                 <span className="text-gray-400 uppercase text-xs pl-2">
                   {!collapsed && "Products"}
@@ -144,8 +182,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </div>
             )}
 
-            {/* Users */}
-            {user.permissions?.some((p: string) => p.startsWith("users:")) && (
+            {user.permissions?.some((p) => p.startsWith("users:")) && (
               <div className="mt-4">
                 <span className="text-gray-400 uppercase text-xs pl-2">
                   {!collapsed && "Users"}
@@ -177,7 +214,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </div>
             )}
 
-            {/* Orders */}
             {user.permissions?.includes("orders:view") && (
               <Link
                 href="/admin/orders"
@@ -197,16 +233,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="border-t border-gray-700 pt-4 flex items-center gap-2 sidebar-link">
             <FaSignOutAlt />
             {!collapsed && (
-              <button
-                className="hover:text-yellow-400"
-                onClick={async () => {
-                  await fetch("/api/logout", {
-                    method: "POST",
-                    credentials: "include",
-                  });
-                  router.push("/login");
-                }}
-              >
+              <button className="hover:text-yellow-400" onClick={handleLogout}>
                 Logout
               </button>
             )}
