@@ -1,9 +1,8 @@
-// src/app/api/auth/refresh/route.ts
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 export async function POST() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   const refreshToken = cookieStore.get("refresh_token")?.value;
 
   if (!refreshToken) {
@@ -19,32 +18,32 @@ export async function POST() {
       headers: {
         Cookie: `refresh_token=${refreshToken}`,
       },
+      credentials: "include", // ✅ make sure cookies are sent
     });
 
     if (!backendRes.ok) {
-      const error = await backendRes.json();
-      return NextResponse.json(
-        { message: error.message || "Refresh failed" },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
     }
 
-    const setCookies = backendRes.headers.getSetCookie();
-    const response = NextResponse.json({ message: "Token refreshed" });
+    // ✅ Extract new access/refresh tokens from backend response headers
+    const setCookieHeaders = backendRes.headers.getSetCookie();
+    const result = await backendRes.json(); // backend usually returns user or token info
 
-    if (setCookies) {
-      if (Array.isArray(setCookies)) {
-        setCookies.forEach(cookie => {
+    const response = NextResponse.json(result);
+
+    if (setCookieHeaders) {
+      if (Array.isArray(setCookieHeaders)) {
+        for (const cookie of setCookieHeaders) {
           response.headers.append("Set-Cookie", cookie);
-        });
+        }
       } else {
-        response.headers.set("Set-Cookie", setCookies);
+        response.headers.set("Set-Cookie", setCookieHeaders);
       }
     }
 
     return response;
   } catch (error) {
-    console.error("🔴 Refresh route error:", error);
+    console.error("❌ Refresh route error:", error);
     return NextResponse.json(
       { message: "Internal server error" },
       { status: 500 }
