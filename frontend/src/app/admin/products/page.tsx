@@ -28,52 +28,6 @@ function ProductsPage() {
     fetchProducts();
   }, []);
 
-  const handleAddProduct = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const name = form.name.value.trim();
-    const stockToAdd = parseInt(form.stock.value);
-
-    const existing = products.find(
-      (p) => p.name.toLowerCase() === name.toLowerCase()
-    );
-
-    const calculatedStatus =
-      stockToAdd === 0 ? "Out of Stock" : form.status.value;
-
-    if (existing) {
-      await fetch(`http://localhost:3000/products/${existing._id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...existing,
-          stock: existing.stock + stockToAdd,
-        }),
-      });
-      toast.success(`Stock increased for "${existing.name}"`);
-    } else {
-      const data = {
-        name,
-        category: form.category.value,
-        size: form.size.value,
-        packaging: form.packaging.value,
-        price: parseFloat(form.price.value),
-        stock: stockToAdd,
-        status: calculatedStatus,
-      };
-
-      await fetch("http://localhost:3000/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      toast.success(`Product "${data.name}" added`);
-    }
-
-    form.reset();
-    fetchProducts();
-  };
-
   const handleUpdateProduct = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editing) return;
@@ -138,33 +92,6 @@ function ProductsPage() {
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Product List</h1>
 
-      {/* Add Product Form */}
-      <form className="space-x-2" onSubmit={handleAddProduct}>
-        <input name="name" placeholder="Name" required className="p-2 border" />
-        <input name="category" placeholder="Category" className="p-2 border" />
-        <select name="size" className="p-2 border" required>
-          <option value="">Size</option>
-          <option value="500ml">500ml</option>
-          <option value="330ml">330ml</option>
-          <option value="750ml">750ml</option>
-        </select>
-        <select name="packaging" className="p-2 border" required>
-          <option value="">Packaging</option>
-          <option value="Can">Can</option>
-          <option value="Bottle">Bottle</option>
-        </select>
-        <input name="price" type="number" placeholder="Price" required className="p-2 border" />
-        <input name="stock" type="number" placeholder="Stock" required className="p-2 border" />
-        <select name="status" className="p-2 border">
-          <option value="Available">Available</option>
-          <option value="Out of Stock">Out of Stock</option>
-          <option value="Unavailable">Unavailable</option>
-        </select>
-        <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-          Add Product
-        </button>
-      </form>
-
       {/* Product Table */}
       <table className="w-full border border-gray-300">
         <thead>
@@ -214,89 +141,97 @@ function ProductsPage() {
         </tbody>
       </table>
 
-      {/* Edit Product Form */}
+      {/* Edit Modal */}
       {editing && (
-        <form
-          className="space-y-2 mt-6 bg-gray-100 p-4 rounded"
-          onSubmit={handleUpdateProduct}
-        >
-          <h2 className="text-lg font-bold">Edit Product</h2>
-          <input
-            name="name"
-            defaultValue={editing.name}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <input
-            name="category"
-            defaultValue={editing.category}
-            className="p-2 border w-full text-black bg-white"
-          />
-          <select
-            name="size"
-            defaultValue={editing.size}
-            className="p-2 border w-full text-black bg-white"
-            required
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <form
+            className="bg-white p-6 rounded shadow-lg w-full max-w-lg space-y-3"
+            onSubmit={handleUpdateProduct}
           >
-            <option value="">Select Size</option>
-            <option value="500ml">500ml</option>
-            <option value="330ml">330ml</option>
-            <option value="750ml">750ml</option>
-          </select>
-          <select
-            name="packaging"
-            defaultValue={editing.packaging}
-            className="p-2 border w-full text-black bg-white"
-            required
-          >
-            <option value="">Select Packaging</option>
-            <option value="Can">Can</option>
-            <option value="Bottle">Bottle</option>
-          </select>
-          <input
-            name="price"
-            type="number"
-            defaultValue={editing.price}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <input
-            name="stock"
-            type="number"
-            defaultValue={editing.stock}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <select
-            name="status"
-            defaultValue={editing.status}
-            className="p-2 border w-full text-black bg-white"
-          >
-            <option value="Available">Available</option>
-            <option value="Out of Stock">Out of Stock</option>
-            <option value="Unavailable">Unavailable</option>
-          </select>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-              Update
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="bg-gray-600 text-white px-4 py-2 rounded"
+            <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+
+            <input
+              name="name"
+              defaultValue={editing.name}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <input
+              name="category"
+              defaultValue={editing.category}
+              className="p-2 border w-full text-black bg-white"
+            />
+            <select
+              name="size"
+              defaultValue={editing.size}
+              className="p-2 border w-full text-black bg-white"
+              required
             >
-              Cancel
-            </button>
-          </div>
-        </form>
+              <option value="">Select Size</option>
+              <option value="500ml">500ml</option>
+              <option value="330ml">330ml</option>
+              <option value="750ml">750ml</option>
+            </select>
+            <select
+              name="packaging"
+              defaultValue={editing.packaging}
+              className="p-2 border w-full text-black bg-white"
+              required
+            >
+              <option value="">Select Packaging</option>
+              <option value="Can">Can</option>
+              <option value="Bottle">Bottle</option>
+            </select>
+            <input
+              name="price"
+              type="number"
+              defaultValue={editing.price}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <input
+              name="stock"
+              type="number"
+              defaultValue={editing.stock}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <select
+              name="status"
+              defaultValue={editing.status}
+              className="p-2 border w-full text-black bg-white"
+            >
+              <option value="Available">Available</option>
+              <option value="Out of Stock">Out of Stock</option>
+              <option value="Unavailable">Unavailable</option>
+            </select>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 bg-gray-400 text-white rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                Update
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );
 }
-  export default function ProtectedProductsPage() {
-    return (
-      <WithPermission required="products:view">
-        <ProductsPage />
-      </WithPermission>
-    );
+
+export default function ProtectedProductsPage() {
+  return (
+    <WithPermission required="products:view">
+      <ProductsPage />
+    </WithPermission>
+  );
 }

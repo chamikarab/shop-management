@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import CheckoutModal from "@/components/CheckoutModal";
+import Invoice from "@/components/Invoice";
 import "../styles/billing.css";
+import { Plus, Minus } from "lucide-react";
 
 interface Product {
   id: string;
@@ -23,12 +26,13 @@ export default function BillingPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [discount, setDiscount] = useState<number | "">("");
   const [isPercentage, setIsPercentage] = useState<boolean>(false);
-
   const [showModal, setShowModal] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [paymentType, setPaymentType] = useState("Cash");
   const [cashGiven, setCashGiven] = useState<number>(0);
+  const [invoiceDate, setInvoiceDate] = useState<string>("");
+  const [invoiceId, setInvoiceId] = useState<string>("");
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -67,99 +71,87 @@ export default function BillingPage() {
     fetchProducts();
   }, []);
 
+  useEffect(() => {
+    setInvoiceDate(new Date().toLocaleString());
+    setInvoiceId("000" + Math.floor(Math.random() * 100000));
+  }, []);
+
   const filteredProducts = products.filter((p) =>
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-    const groupedBySize = ["750ml", "500ml", "330ml"].map((size) => ({
+  const categorized = ["750ml", "500ml", "330ml"].map((size) => ({
     size,
     items: filteredProducts.filter((p) => p.size === size),
   }));
 
-    const addToCart = (product: Product) => {
+  const addToCart = (product: Product) => {
     if (product.stock <= 0) return;
-
     const exists = cart.find((item) => item.id === product.id);
     if (exists) {
-        setCart((prev) =>
+      setCart((prev) =>
         prev.map((item) =>
-            item.id === product.id
+          item.id === product.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         )
-        );
+      );
     } else {
-        setCart((prev) => [...prev, { ...product, quantity: 1 }]);
+      setCart((prev) => [...prev, { ...product, quantity: 1 }]);
     }
-
     setProducts((prev) =>
-        prev.map((p) =>
-        p.id === product.id ? { ...p, stock: p.stock - 1 } : p
-        )
+      prev.map((p) => (p.id === product.id ? { ...p, stock: p.stock - 1 } : p))
     );
-    };
+  };
 
-    const increaseQty = (id: string) => {
+  const increaseQty = (id: string) => {
     const product = products.find((p) => p.id === id);
     if (!product || product.stock <= 0) return;
-
-    setCart((prevCart) =>
-        prevCart.map((item) =>
+    setCart((prev) =>
+      prev.map((item) =>
         item.id === id ? { ...item, quantity: item.quantity + 1 } : item
-        )
+      )
     );
-
-    setProducts((prevProducts) =>
-        prevProducts.map((p) =>
-        p.id === id ? { ...p, stock: p.stock - 1 } : p
-        )
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, stock: p.stock - 1 } : p))
     );
-    };
+  };
 
-    const decreaseQty = (id: string) => {
+  const decreaseQty = (id: string) => {
     const item = cart.find((i) => i.id === id);
     if (!item) return;
-
     if (item.quantity === 1) {
-        // Restore 1 to stock before removing from cart
-        setProducts((prev) =>
-        prev.map((p) =>
-            p.id === id ? { ...p, stock: p.stock + 1 } : p
-        )
-        );
-        setCart((prev) => prev.filter((i) => i.id !== id));
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, stock: p.stock + 1 } : p))
+      );
+      setCart((prev) => prev.filter((i) => i.id !== id));
     } else {
-        // Restore 1 to stock for decrement
-        setCart((prev) =>
-        prev.map((i) =>
-            i.id === id ? { ...i, quantity: i.quantity - 1 } : i
-        )
-        );
-        setProducts((prev) =>
-        prev.map((p) =>
-            p.id === id ? { ...p, stock: p.stock + 1 } : p
-        )
-        );
+      setCart((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, quantity: i.quantity - 1 } : i))
+      );
+      setProducts((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, stock: p.stock + 1 } : p))
+      );
     }
-    };
+  };
 
-    const updateCartItem = (id: string, updates: Partial<Product>) => {
+  const updateCartItem = (id: string, updates: Partial<Product>) => {
     setCart((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
-    };
+  };
 
-    const removeFromCart = (id: string) => {
+  const removeFromCart = (id: string) => {
     const item = cart.find((i) => i.id === id);
     if (item) {
-        setProducts((prev) =>
+      setProducts((prev) =>
         prev.map((p) =>
-            p.id === id ? { ...p, stock: p.stock + item.quantity } : p
+          p.id === id ? { ...p, stock: p.stock + item.quantity } : p
         )
-        );
+      );
     }
     setCart((prev) => prev.filter((item) => item.id !== id));
-    };
+  };
 
   const totalBeforeDiscount = cart.reduce((sum, item) => {
     if (item.free) return sum;
@@ -179,347 +171,228 @@ export default function BillingPage() {
   const balance = cashGiven - grandTotal;
 
   const confirmOrder = async () => {
-  try {
-    const res = await fetch("http://localhost:3000/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        items: cart,
-        total: grandTotal,
-        customerName,
-        phoneNumber,
-        paymentType,
-        cashGiven,
-        balance,
-      }),
-    });
+    try {
+      const res = await fetch("http://localhost:3000/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          items: cart,
+          total: grandTotal,
+          customerName,
+          phoneNumber,
+          paymentType,
+          cashGiven,
+          balance,
+        }),
+      });
 
-    if (!res.ok) throw new Error("Failed to place order");
+      if (!res.ok) throw new Error("Failed to place order");
 
-    toast.success("Order placed successfully!");
-
-    // ✅ Print first, then clear cart after small delay
-    setTimeout(() => {
-      window.print();
+      toast.success("Order placed successfully!");
 
       setTimeout(() => {
-        setCart([]);
-        setDiscount("");
-        setIsPercentage(false);
-        setShowModal(false);
-        setCustomerName("");
-        setPhoneNumber("");
-        setCashGiven(0);
-      }, 500); // give time for print to complete
-    }, 200); // slight delay ensures UI re-renders before print
-  } catch (err) {
-    console.error("Checkout error:", err);
-    toast.error("Checkout failed");
-  }
-};
+        window.print();
+        setTimeout(() => {
+          setCart([]);
+          setDiscount("");
+          setIsPercentage(false);
+          setShowModal(false);
+          setCustomerName("");
+          setPhoneNumber("");
+          setCashGiven(0);
+        }, 500);
+      }, 200);
+    } catch (err) {
+      console.error("Checkout error:", err);
+      toast.error("Checkout failed");
+    }
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">🧾 Billing System (POS)</h1>
+    <div className="flex flex-col md:flex-row gap-6 p-6 min-h-screen bg-white text-black">
+      <div className="flex-1">
+        <h1 className="text-2xl font-bold mb-4">🧾 Billing System (POS)</h1>
+        <input
+          type="text"
+          placeholder="Search product..."
+          className="border p-2 rounded w-full mb-4"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
 
-      <input
-        type="text"
-        placeholder="Search or scan product..."
-        className="border p-2 rounded w-full mb-4"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-
-      {groupedBySize.map(({ size, items }) => (
-        <div key={size} className="mb-8">
-          <h2 className="text-lg font-semibold mb-2">{size} Products</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {items.map((product) => (
-              <div
-                key={product.id}
-                className={`border rounded p-4 shadow cursor-pointer relative ${
-                  product.stock === 0
-                    ? "opacity-50 pointer-events-none"
-                    : "hover:bg-gray-100"
-                }`}
-                onClick={() => addToCart(product)}
-              >
-                <h2 className="font-semibold">{product.name}</h2>
-                <p className="font-semibold">
-                  {product.size} - {product.packaging}
-                </p>
-                <p>Rs. {product.price.toFixed(2)}</p>
-                <p className="text-sm text-gray-500">Stock: {product.stock}</p>
-                {product.stock <= 10 && product.stock > 0 && (
-                  <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">
-                    Low Stock
-                  </span>
-                )}
-                {product.stock === 0 && (
-                  <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">
-                    Out of Stock
-                  </span>
-                )}
-              </div>
-            ))}
+        {categorized.map(({ size, items }) => (
+          <div key={size} className="mb-6">
+            <h2 className="text-lg font-semibold mb-2">{size} Products</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {items.map((product) => (
+                <div
+                  key={product.id}
+                  className={`border rounded p-4 shadow cursor-pointer relative transition hover:bg-gray-100 ${
+                    product.stock === 0 ? "opacity-50 pointer-events-none" : ""
+                  }`}
+                  onClick={() => addToCart(product)}
+                >
+                  <h2 className="font-semibold">{product.name}</h2>
+                  <p>
+                    {product.size} - {product.packaging}
+                  </p>
+                  <p>Rs. {product.price.toFixed(2)}</p>
+                  <p className="text-sm text-gray-500">
+                    Stock: {product.stock}
+                  </p>
+                  {product.stock <= 10 && product.stock > 0 && (
+                    <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">
+                      Low
+                    </span>
+                  )}
+                  {product.stock === 0 && (
+                    <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">
+                      Out
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
-
-      <h2 className="text-xl font-semibold mb-2">🛒 Cart</h2>
-      <table className="w-full text-left border">
-        <thead className="bg-gray-100">
-          <tr>
-            <th className="p-2">Product</th>
-            <th className="p-2">Size</th>
-            <th className="p-2">Qty</th>
-            <th className="p-2">Price</th>
-            <th className="p-2">Discount</th>
-            <th className="p-2">Free</th>
-            <th className="p-2">Subtotal</th>
-            <th className="p-2">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {cart.map((item) => {
-            const discountAmount =
-              item.free
-                ? 0
-                : item.discountType === "percentage"
-                ? ((item.discount || 0) / 100) * item.price * item.quantity
-                : (item.discount || 0) * item.quantity;
-
-            const subtotal = item.free
-              ? 0
-              : item.price * item.quantity - discountAmount;
-
-            return (
-              <tr key={item.id}>
-                <td className="p-2">{item.name}</td>
-                <td className="p-2">{item.size} - {item.packaging}</td>
-                <td className="p-2">
-                  <div className="qty-controls">
-                    <button onClick={() => decreaseQty(item.id)}>-</button>
-                    <span className="mx-2">{item.quantity}</span>
-                    <button onClick={() => increaseQty(item.id)}>+</button>
-                  </div>
-                </td>
-                <td className="p-2">Rs. {item.price.toFixed(2)}</td>
-                <td className="p-2">
-                  <input
-                    type="number"
-                    className="border p-1 rounded w-16"
-                    value={item.discount || ""}
-                    onChange={(e) =>
-                      updateCartItem(item.id, {
-                        discount: Number(e.target.value),
-                      })
-                    }
-                  />
-                  <select
-                    className="ml-1 border p-1 rounded"
-                    value={item.discountType}
-                    onChange={(e) =>
-                      updateCartItem(item.id, {
-                        discountType: e.target.value as "flat" | "percentage",
-                      })
-                    }
-                  >
-                    <option value="flat">Rs.</option>
-                    <option value="percentage">%</option>
-                  </select>
-                </td>
-                <td className="p-2 text-center">
-                  <label className="switch">
-                    <input
-                      type="checkbox"
-                      checked={item.free || false}
-                      onChange={(e) =>
-                        updateCartItem(item.id, { free: e.target.checked })
-                      }
-                    />
-                    <span className="slider round"></span>
-                  </label>
-                </td>
-                <td className="p-2">Rs. {subtotal.toFixed(2)}</td>
-                <td className="p-2">
-                  <button
-                    className="text-red-500 hover:underline"
-                    onClick={() => removeFromCart(item.id)}
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      <div className="mt-6 text-right">
-        <div className="mb-4 flex justify-end items-center gap-2">
-          <input
-            type="number"
-            className="border p-2 rounded w-32"
-            placeholder="Discount"
-            value={discount}
-            onChange={(e) =>
-              setDiscount(e.target.value === "" ? "" : Number(e.target.value))
-            }
-          />
-          <select
-            className="border p-2 rounded"
-            value={isPercentage ? "percentage" : "flat"}
-            onChange={(e) => setIsPercentage(e.target.value === "percentage")}
-          >
-            <option value="flat">Rs.</option>
-            <option value="percentage">%</option>
-          </select>
-        </div>
-
-        <h3 className="text-lg font-semibold">
-          Grand Total: Rs. {grandTotal.toFixed(2)}
-        </h3>
-        <button
-        onClick={() => setShowModal(true)}
-        disabled={cart.length === 0}
-        className={`mt-2 px-4 py-2 rounded text-white ${
-            cart.length === 0
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-600 hover:bg-blue-700"
-        }`}
-        >
-        Checkout
-        </button>
+        ))}
       </div>
 
-        {showModal && (
-        <div className="custom-modal">
-            <div className="modal-content">
-            <h2 className="text-xl font-bold mb-4">Checkout</h2>
-            <input
-                className="border p-2 rounded w-full mb-2"
-                placeholder="Customer Name (optional)"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-            />
-            <input
-                className="border p-2 rounded w-full mb-2"
-                placeholder="Phone Number (optional)"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-            />
-            <select
-                className="border p-2 rounded w-full mb-2"
-                value={paymentType}
-                onChange={(e) => setPaymentType(e.target.value)}
-            >
-                <option>Cash</option>
-                <option>Card</option>
-                <option>Online</option>
-            </select>
+      <div className="w-full md:w-96 border p-4 mt-12 rounded shadow">
+        <h2 className="text-xl font-semibold mb-4">🛒 Cart</h2>
+        {cart.map((item) => (
+          <div key={item.id} className="mb-2 border-b pb-2">
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="font-semibold">{item.name}</p>
+                <p className="text-sm text-gray-600">
+                  {item.size} - {item.packaging}
+                </p>
+                <p className="text-sm">Rs. {item.price.toFixed(2)}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  className="border p-1 rounded"
+                  onClick={() => decreaseQty(item.id)}
+                >
+                  <Minus size={16} />
+                </button>
+                <span>{item.quantity}</span>
+                <button
+                  className="border p-1 rounded"
+                  onClick={() => increaseQty(item.id)}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <label className="text-sm">Discount:</label>
+              <input
+                type="number"
+                value={item.discount || ""}
+                className="border p-1 w-16"
+                onChange={(e) =>
+                  updateCartItem(item.id, { discount: Number(e.target.value) })
+                }
+              />
+              <select
+                className="border p-1"
+                value={item.discountType}
+                onChange={(e) =>
+                  updateCartItem(item.id, {
+                    discountType: e.target.value as "flat" | "percentage",
+                  })
+                }
+              >
+                <option value="flat">Rs.</option>
+                <option value="percentage">%</option>
+              </select>
+              <label className="text-sm ml-auto flex items-center gap-1">
                 <input
-                type="text"
-                inputMode="decimal"
-                className="border p-2 rounded w-full mb-2"
-                placeholder="Cash Given"
-                value={cashGiven}
-                onChange={(e) => setCashGiven(Number(e.target.value))}
+                  type="checkbox"
+                  checked={item.free || false}
+                  onChange={(e) =>
+                    updateCartItem(item.id, { free: e.target.checked })
+                  }
                 />
-            <p className="mb-4">
-                Balance:{" "}
-                <span className={balance < 0 ? "text-red-600 font-bold" : ""}>
-                Rs. {balance.toFixed(2)}
-                </span>
-            </p>
+                Free
+              </label>
+              <button
+                className="text-red-500 text-xs ml-2"
+                onClick={() => removeFromCart(item.id)}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        ))}
 
-            {/* ✅ Added product list in modal */}
-            <div className="mb-4 max-h-40 overflow-y-auto text-sm bg-gray-50 p-2 rounded border">
-                <h3 className="font-semibold mb-2">Products:</h3>
-                <ul>
-                {cart.map((item) => (
-                    <li key={item.id} className="mb-1">
-                    {item.quantity}x {item.name} - {item.size} ({item.packaging}) - Rs. {item.price.toFixed(2)}
-                    {item.free && (
-                        <span className="ml-2 text-green-600 font-medium">(Free)</span>
-                    )}
-                    {item.discount ? (
-                        <span className="ml-2 text-yellow-600 text-xs">
-                        - {item.discount}
-                        {item.discountType === "percentage" ? "%" : " Rs."} discount
-                        </span>
-                    ) : null}
-                    </li>
-                ))}
-                </ul>
+        <div className="mt-4 border-t pt-4">
+          <div className="mb-2">
+            <label className="text-sm">Bill Discount:</label>
+            <div className="flex gap-2 mt-1">
+              <input
+                type="number"
+                className="border p-1 w-24"
+                placeholder="Discount"
+                value={discount}
+                onChange={(e) =>
+                  setDiscount(
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+              />
+              <select
+                className="border p-1"
+                value={isPercentage ? "percentage" : "flat"}
+                onChange={(e) =>
+                  setIsPercentage(e.target.value === "percentage")
+                }
+              >
+                <option value="flat">Rs.</option>
+                <option value="percentage">%</option>
+              </select>
             </div>
-
-            <div className="flex justify-end gap-2">
-                <button
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2 border rounded"
-                >
-                Cancel
-                </button>
-                <button
-                onClick={confirmOrder}
-                className={`px-4 py-2 rounded text-white ${
-                    cashGiven >= grandTotal
-                    ? "bg-green-600 hover:bg-green-700"
-                    : "bg-gray-400 cursor-not-allowed"
-                }`}
-                disabled={cashGiven < grandTotal}
-                >
-                Confirm Order
-                </button>
-                <button onClick={() => window.print()}>
-                🖨 Print Invoice
-                </button>
-            </div>
-            </div>
+          </div>
+          <p className="font-semibold">Total: Rs. {grandTotal.toFixed(2)}</p>
+          <button
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mt-2 w-full"
+            disabled={cart.length === 0}
+            onClick={() => setShowModal(true)}
+          >
+            Checkout
+          </button>
         </div>
-        )}
-       <div id="print-invoice" className="hidden print:block text-sm leading-4">
-            <div className="text-center">
-                <p>************************</p>
-                <p><strong>SISILA BEER SHOP</strong></p>
-                <p>Ankelipitiya, Thalathuoya Rd, Kandy</p>
-                <p>📞 0779574545</p>
-                <p>************************</p>
-            </div>
+      </div>
 
-            <p>Date: {new Date().toLocaleString()}</p>
-            <p>Invoice #: 000{Math.floor(Math.random() * 100000)}</p>
-            <p>Cashier: Admin</p>
-            <hr />
+      {showModal && (
+        <CheckoutModal
+          cart={cart}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          phoneNumber={phoneNumber}
+          setPhoneNumber={setPhoneNumber}
+          paymentType={paymentType}
+          setPaymentType={setPaymentType}
+          cashGiven={cashGiven}
+          setCashGiven={setCashGiven}
+          balance={balance}
+          onCancel={() => setShowModal(false)}
+          onConfirm={confirmOrder}
+        />
+      )}
 
-            {cart.map((item) => (
-                <div key={item.id} className="flex justify-between">
-                <div>
-                    <p>{item.name}</p>
-                    <p className="text-xs">
-                    {item.size} / {item.packaging} × {item.quantity}
-                    </p>
-                </div>
-                <div>
-                    <p>Rs. {(item.price * item.quantity).toFixed(2)}</p>
-                </div>
-                </div>
-            ))}
-
-            <hr />
-            <p>Total: Rs. {grandTotal.toFixed(2)}</p>
-            <p>Cash: Rs. {cashGiven.toFixed(2)}</p>
-            <p>Discount: Rs. {discountValue.toFixed(2)}</p>
-            <p>Balance: Rs. {balance.toFixed(2)}</p>
-            <p>Payment: {paymentType}</p>
-
-            <hr />
-            <div className="text-center">
-                <p>**** THANK YOU ****</p>
-            </div>
-        </div>
+      <Invoice
+        cart={cart}
+        invoiceDate={invoiceDate}
+        invoiceId={invoiceId}
+        grandTotal={grandTotal}
+        cashGiven={cashGiven}
+        discountValue={discountValue}
+        balance={balance}
+        paymentType={paymentType}
+      />
     </div>
   );
 }

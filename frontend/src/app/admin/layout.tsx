@@ -121,7 +121,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           collapsed ? "w-20" : "w-64"
         }`}
       >
-        <div>
+        <div className="space-y-2 mt-2">
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="text-white mb-6 focus:outline-none"
@@ -131,20 +131,27 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </button>
 
           <nav className="space-y-2">
-            <Link
-              href="/admin"
-              className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
-            >
-              <FaBox className="inline-block mr-2" />
-              {!collapsed && "Dashboard"}
-            </Link>
+            <div className="mt-4">
+              <span className="text-gray-400 uppercase text-xs pl-2">
+                {!collapsed && "Dashboard"}
+              </span>
+              <div className="space-y-2 mt-2">
+                <Link
+                  href="/admin"
+                  className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
+                >
+                  <FaBox className="inline-block mr-2" />
+                  {!collapsed && "Overview"}
+                </Link>
+              </div>
+            </div>
 
             {user.permissions?.some((p) => p.startsWith("products:")) && (
               <div className="mt-4">
                 <span className="text-gray-400 uppercase text-xs pl-2">
                   {!collapsed && "Products"}
                 </span>
-                <div className="ml-4 space-y-2 mt-2">
+                <div className="space-y-2 mt-2">
                   {user.permissions.includes("products:add") && (
                     <Link
                       href="/admin/products/add"
@@ -187,7 +194,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <span className="text-gray-400 uppercase text-xs pl-2">
                   {!collapsed && "Users"}
                 </span>
-                <div className="ml-4 space-y-2 mt-2">
+                <div className="space-y-2 mt-2">
                   {user.permissions.includes("users:add") && (
                     <Link
                       href="/admin/users/add"
@@ -214,16 +221,25 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </div>
             )}
 
-            {user.permissions?.includes("orders:view") && (
-              <Link
-                href="/admin/orders"
-                className={`sidebar-link ${
-                  pathname === "/admin/orders" ? "active" : ""
-                }`}
-              >
-                <FaClipboardList className="inline-block mr-2" />
-                {!collapsed && "Orders"}
-              </Link>
+            {user.permissions?.some((p) => p.startsWith("orders:")) && (
+              <div className="mt-4">
+                <span className="text-gray-400 uppercase text-xs pl-2">
+                  {!collapsed && "Orders"}
+                </span>
+                <div className="space-y-2 mt-2">
+                  {user.permissions.includes("orders:view") && (
+                    <Link
+                      href="/admin/orders"
+                      className={`sidebar-link ${
+                        pathname === "/admin/orders" ? "active" : ""
+                      }`}
+                    >
+                      <FaClipboardList className="inline-block mr-2" />
+                      {!collapsed && "All Orders"}
+                    </Link>
+                  )}
+                </div>
+              </div>
             )}
           </nav>
         </div>
