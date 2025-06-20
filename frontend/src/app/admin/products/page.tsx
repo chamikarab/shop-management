@@ -141,89 +141,97 @@ function ProductsPage() {
         </tbody>
       </table>
 
-      {/* Edit Product Form */}
+      {/* Edit Modal */}
       {editing && (
-        <form
-          className="space-y-2 mt-6 bg-gray-100 p-4 rounded"
-          onSubmit={handleUpdateProduct}
-        >
-          <h2 className="text-lg font-bold">Edit Product</h2>
-          <input
-            name="name"
-            defaultValue={editing.name}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <input
-            name="category"
-            defaultValue={editing.category}
-            className="p-2 border w-full text-black bg-white"
-          />
-          <select
-            name="size"
-            defaultValue={editing.size}
-            className="p-2 border w-full text-black bg-white"
-            required
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+          <form
+            className="bg-white p-6 rounded shadow-lg w-full max-w-lg space-y-3"
+            onSubmit={handleUpdateProduct}
           >
-            <option value="">Select Size</option>
-            <option value="500ml">500ml</option>
-            <option value="330ml">330ml</option>
-            <option value="750ml">750ml</option>
-          </select>
-          <select
-            name="packaging"
-            defaultValue={editing.packaging}
-            className="p-2 border w-full text-black bg-white"
-            required
-          >
-            <option value="">Select Packaging</option>
-            <option value="Can">Can</option>
-            <option value="Bottle">Bottle</option>
-          </select>
-          <input
-            name="price"
-            type="number"
-            defaultValue={editing.price}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <input
-            name="stock"
-            type="number"
-            defaultValue={editing.stock}
-            className="p-2 border w-full text-black bg-white"
-            required
-          />
-          <select
-            name="status"
-            defaultValue={editing.status}
-            className="p-2 border w-full text-black bg-white"
-          >
-            <option value="Available">Available</option>
-            <option value="Out of Stock">Out of Stock</option>
-            <option value="Unavailable">Unavailable</option>
-          </select>
-          <div className="flex gap-2">
-            <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-              Update
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="bg-gray-600 text-white px-4 py-2 rounded"
+            <h2 className="text-xl font-bold mb-4">Edit Product</h2>
+
+            <input
+              name="name"
+              defaultValue={editing.name}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <input
+              name="category"
+              defaultValue={editing.category}
+              className="p-2 border w-full text-black bg-white"
+            />
+            <select
+              name="size"
+              defaultValue={editing.size}
+              className="p-2 border w-full text-black bg-white"
+              required
             >
-              Cancel
-            </button>
-          </div>
-        </form>
+              <option value="">Select Size</option>
+              <option value="500ml">500ml</option>
+              <option value="330ml">330ml</option>
+              <option value="750ml">750ml</option>
+            </select>
+            <select
+              name="packaging"
+              defaultValue={editing.packaging}
+              className="p-2 border w-full text-black bg-white"
+              required
+            >
+              <option value="">Select Packaging</option>
+              <option value="Can">Can</option>
+              <option value="Bottle">Bottle</option>
+            </select>
+            <input
+              name="price"
+              type="number"
+              defaultValue={editing.price}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <input
+              name="stock"
+              type="number"
+              defaultValue={editing.stock}
+              className="p-2 border w-full text-black bg-white"
+              required
+            />
+            <select
+              name="status"
+              defaultValue={editing.status}
+              className="p-2 border w-full text-black bg-white"
+            >
+              <option value="Available">Available</option>
+              <option value="Out of Stock">Out of Stock</option>
+              <option value="Unavailable">Unavailable</option>
+            </select>
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setEditing(null)}
+                className="px-4 py-2 bg-gray-400 text-white rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-green-600 text-white rounded"
+              >
+                Update
+              </button>
+            </div>
+          </form>
+        </div>
       )}
     </div>
   );
 }
-  export default function ProtectedProductsPage() {
-    return (
-      <WithPermission required="products:view">
-        <ProductsPage />
-      </WithPermission>
-    );
+
+export default function ProtectedProductsPage() {
+  return (
+    <WithPermission required="products:view">
+      <ProductsPage />
+    </WithPermission>
+  );
 }
