@@ -50,7 +50,17 @@ export class OrderController {
     }
 
     try {
+      const now = new Date();
+      const formattedDate = now
+        .toISOString()
+        .replace(/[-:.TZ]/g, '')
+        .slice(0, 12); // e.g., 202506211327
+
+      const invoiceId = `INV${formattedDate}`;
+
       const createdOrder = await this.orderService.create({
+        invoiceId,
+        invoiceDate: now.toISOString(),
         items,
         total,
         customerName,

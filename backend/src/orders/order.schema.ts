@@ -3,7 +3,7 @@ import { Document } from 'mongoose';
 
 export type OrderDocument = Order & Document;
 
-@Schema({ _id: false }) // This makes OrderItem a subdocument
+@Schema({ _id: false }) // Subdocument schema for each item
 export class OrderItem {
   @Prop({ required: true }) productId: string;
   @Prop({ required: true }) name: string;
@@ -24,16 +24,26 @@ export class Order {
   @Prop({ required: true })
   total: number;
 
-  @Prop() customerName?: string;
+  @Prop()
+  customerName?: string;
 
-  @Prop() phoneNumber?: string;
+  @Prop()
+  phoneNumber?: string;
 
   @Prop({ required: true })
   paymentType: string;
 
-  @Prop() cashGiven?: number;
+  @Prop()
+  cashGiven?: number;
 
-  @Prop() balance?: number;
+  @Prop()
+  balance?: number;
+
+  @Prop({ required: true, unique: true })
+  invoiceId: string;
+
+  @Prop({ required: true })
+  invoiceDate: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
