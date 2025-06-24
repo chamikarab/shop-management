@@ -3,47 +3,60 @@ import { Document } from 'mongoose';
 
 export type OrderDocument = Order & Document;
 
-@Schema({ _id: false }) // Subdocument schema for each item
+@Schema({ _id: false })
 export class OrderItem {
-  @Prop({ required: true }) productId: string;
-  @Prop({ required: true }) name: string;
-  @Prop({ required: true }) price: number;
-  @Prop({ required: true }) quantity: number;
-  @Prop() discount?: number;
-  @Prop() discountType?: 'flat' | 'percentage';
-  @Prop() free?: boolean;
+  @Prop({ required: true })
+  productId: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ required: true })
+  price: number;
+
+  @Prop({ required: true })
+  quantity: number;
+
+  @Prop({ default: 0 })
+  discount?: number;
+
+  @Prop({ enum: ['flat', 'percentage'], default: 'flat' })
+  discountType?: 'flat' | 'percentage';
+
+  @Prop({ default: false })
+  free?: boolean;
 }
 
 export const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
 @Schema({ timestamps: true })
 export class Order {
+  @Prop({ required: true, unique: true })
+  invoiceId: string;
+
+  @Prop({ required: true })
+  invoiceDate: string;
+
   @Prop({ type: [OrderItemSchema], required: true })
   items: OrderItem[];
 
   @Prop({ required: true })
   total: number;
 
-  @Prop()
+  @Prop({ default: null })
   customerName?: string;
 
-  @Prop()
+  @Prop({ default: null })
   phoneNumber?: string;
 
   @Prop({ required: true })
   paymentType: string;
 
-  @Prop()
+  @Prop({ default: null })
   cashGiven?: number;
 
-  @Prop()
+  @Prop({ default: null })
   balance?: number;
-
-  @Prop({ required: true, unique: true })
-  invoiceId: string;
-
-  @Prop({ required: true })
-  invoiceDate: string;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);
