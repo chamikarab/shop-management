@@ -14,6 +14,6 @@ import { Product, ProductSchema } from '../product/product.schema';
   ],
   controllers: [OrderController],
   providers: [OrderService],
-  exports: [OrderService], // Optional: Export if needed elsewhere
+  exports: [OrderService],
 })
 export class OrderModule {}
