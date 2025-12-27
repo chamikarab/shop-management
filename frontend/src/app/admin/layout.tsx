@@ -117,41 +117,51 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div className="admin-layout flex min-h-screen text-black bg-white">
       {/* Sidebar */}
       <aside
-        className={`bg-gray-900 text-white p-4 flex flex-col justify-between transition-all duration-300 ${
-          collapsed ? "w-20" : "w-64"
+        className={`bg-gray-900 text-white p-6 flex flex-col justify-between transition-all duration-300 ${
+          collapsed ? "w-20" : "w-72"
         }`}
       >
-        <div className="space-y-2 mt-2">
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-white mb-6 focus:outline-none"
-            title="Toggle Sidebar"
-          >
-            <FaBars size={20} />
-          </button>
+        <div className="space-y-4 mt-2">
+          <div className="flex items-center justify-between mb-8">
+            {!collapsed && (
+              <div>
+                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  🍺 Beer Shop POS
+                </h2>
+                <p className="text-xs text-gray-400 mt-1">Management System</p>
+              </div>
+            )}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-white hover:text-purple-300 focus:outline-none p-2 rounded-lg hover:bg-white/10 transition-all"
+              title="Toggle Sidebar"
+            >
+              <FaBars size={20} />
+            </button>
+          </div>
 
-          <nav className="space-y-2">
-            <div className="mt-4">
-              <span className="text-gray-400 uppercase text-xs pl-2">
+          <nav className="space-y-6">
+            <div>
+              <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
                 {!collapsed && "Dashboard"}
               </span>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-1">
                 <Link
                   href="/admin"
                   className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
                 >
-                  <FaBox className="inline-block mr-2" />
-                  {!collapsed && "Overview"}
+                  <FaBox />
+                  {!collapsed && <span>Overview</span>}
                 </Link>
               </div>
             </div>
 
             {user.permissions?.some((p) => p.startsWith("products:")) && (
-              <div className="mt-4">
-                <span className="text-gray-400 uppercase text-xs pl-2">
+              <div>
+                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
                   {!collapsed && "Products"}
                 </span>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-1">
                   {user.permissions.includes("products:add") && (
                     <Link
                       href="/admin/products/add"
@@ -159,8 +169,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/products/add" ? "active" : ""
                       }`}
                     >
-                      <FaUserPlus className="inline-block mr-2" />
-                      {!collapsed && "Add Product"}
+                      <FaUserPlus />
+                      {!collapsed && <span>Add Product</span>}
                     </Link>
                   )}
                   {user.permissions.includes("products:view") && (
@@ -170,8 +180,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/products" ? "active" : ""
                       }`}
                     >
-                      <FaListUl className="inline-block mr-2" />
-                      {!collapsed && "All Products"}
+                      <FaListUl />
+                      {!collapsed && <span>All Products</span>}
                     </Link>
                   )}
                   {user.permissions.includes("products:purchasing") && (
@@ -181,8 +191,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/products/purchasing" ? "active" : ""
                       }`}
                     >
-                      <FaShoppingCart className="inline-block mr-2" />
-                      {!collapsed && "Purchasing"}
+                      <FaShoppingCart />
+                      {!collapsed && <span>Purchasing</span>}
                     </Link>
                   )}
                 </div>
@@ -190,11 +200,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
 
             {user.permissions?.some((p) => p.startsWith("users:")) && (
-              <div className="mt-4">
-                <span className="text-gray-400 uppercase text-xs pl-2">
+              <div>
+                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
                   {!collapsed && "Users"}
                 </span>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-1">
                   {user.permissions.includes("users:add") && (
                     <Link
                       href="/admin/users/add"
@@ -202,8 +212,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/users/add" ? "active" : ""
                       }`}
                     >
-                      <FaUserPlus className="inline-block mr-2" />
-                      {!collapsed && "Add User"}
+                      <FaUserPlus />
+                      {!collapsed && <span>Add User</span>}
                     </Link>
                   )}
                   {user.permissions.includes("users:view") && (
@@ -213,8 +223,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/users" ? "active" : ""
                       }`}
                     >
-                      <FaListUl className="inline-block mr-2" />
-                      {!collapsed && "All Users"}
+                      <FaListUl />
+                      {!collapsed && <span>All Users</span>}
                     </Link>
                   )}
                 </div>
@@ -222,11 +232,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
 
             {user.permissions?.some((p) => p.startsWith("orders:")) && (
-              <div className="mt-4">
-                <span className="text-gray-400 uppercase text-xs pl-2">
+              <div>
+                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
                   {!collapsed && "Orders"}
                 </span>
-                <div className="space-y-2 mt-2">
+                <div className="space-y-1">
                   {user.permissions.includes("orders:view") && (
                     <Link
                       href="/admin/orders"
@@ -234,8 +244,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         pathname === "/admin/orders" ? "active" : ""
                       }`}
                     >
-                      <FaClipboardList className="inline-block mr-2" />
-                      {!collapsed && "All Orders"}
+                      <FaClipboardList />
+                      {!collapsed && <span>All Orders</span>}
                     </Link>
                   )}
                 </div>
@@ -245,15 +255,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Logout */}
-        <div className="mt-8">
-          <div className="border-t border-gray-700 pt-4 flex items-center gap-2 sidebar-link">
+        <div className="mt-auto pt-6 border-t border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="sidebar-link w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
+          >
             <FaSignOutAlt />
-            {!collapsed && (
-              <button className="hover:text-yellow-400" onClick={handleLogout}>
-                Logout
-              </button>
-            )}
-          </div>
+            {!collapsed && <span>Logout</span>}
+          </button>
         </div>
       </aside>
 

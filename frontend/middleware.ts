@@ -50,7 +50,7 @@ export async function middleware(req: NextRequest) {
 
     if (
       requiredPermissions &&
-      !requiredPermissions.some((perm) => userPermissions.includes(perm))
+      !userPermissions.includes(requiredPermissions)
     ) {
       return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
