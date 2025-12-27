@@ -5,7 +5,6 @@ import toast from "react-hot-toast";
 import CheckoutModal from "@/components/CheckoutModal";
 import Invoice from "@/components/Invoice";
 import "../styles/billing.css";
-import { Plus, Minus } from "lucide-react";
 
 interface Product {
   id: string;
@@ -33,11 +32,12 @@ export default function BillingPage() {
   const [cashGiven, setCashGiven] = useState<number>(0);
   const [invoiceDate, setInvoiceDate] = useState<string>("");
   const [invoiceId, setInvoiceId] = useState<string>("");
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await fetch("http://localhost:3000/products", {
+        const res = await fetch(`${apiUrl}/products`, {
           credentials: "include",
         });
 
@@ -47,9 +47,18 @@ export default function BillingPage() {
         }
 
         const data = await res.json();
+        type ApiProduct = {
+          _id: string;
+          name: string;
+          price: number;
+          stock: number;
+          size?: string;
+          packaging?: string;
+          status?: string;
+        };
         const mapped = data
-          .filter((p: any) => p.status?.toLowerCase() === "available")
-          .map((p: any) => ({
+          .filter((p: ApiProduct) => p.status?.toLowerCase() === "available")
+          .map((p: ApiProduct) => ({
             id: p._id,
             name: p.name,
             price: p.price,
@@ -69,6 +78,7 @@ export default function BillingPage() {
     };
 
     fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -172,7 +182,7 @@ export default function BillingPage() {
 
   const confirmOrder = async () => {
     try {
-      const res = await fetch("http://localhost:3000/orders", {
+      const res = await fetch(`${apiUrl}/orders`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -209,163 +219,288 @@ export default function BillingPage() {
     }
   };
 
-  return (
-    <div className="flex flex-col md:flex-row gap-6 p-6 min-h-screen bg-white text-black">
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold mb-4">🧾 Billing System (POS)</h1>
-        <input
-          type="text"
-          placeholder="Search product..."
-          className="border p-2 rounded w-full mb-4"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+  const calculateItemTotal = (item: Product): number => {
+    if (item.free) return 0;
+    const baseTotal = item.price * item.quantity;
+    if (item.discount) {
+      if (item.discountType === "percentage") {
+        return baseTotal - (baseTotal * item.discount) / 100;
+      }
+      return baseTotal - item.discount * item.quantity;
+    }
+    return baseTotal;
+  };
 
+  return (
+    <div className="flex flex-col lg:flex-row gap-6 p-6 min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Products Section */}
+      <div className="flex-1 space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-4xl font-bold mb-2" style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            Point of Sale
+          </h1>
+          <p className="text-slate-600">Select products to add to cart</p>
+        </div>
+
+        {/* Search Bar */}
+        <div className="modern-card">
+          <label className="block text-sm font-semibold text-slate-700 mb-2">
+            Search Products
+          </label>
+          <input
+            type="text"
+            placeholder="Type product name to search..."
+            className="modern-input"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Product Categories */}
         {categorized.map(({ size, items }) => (
-          <div key={size} className="mb-6">
-            <h2 className="text-lg font-semibold mb-2">{size} Products</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {items.map((product) => (
-                <div
-                  key={product.id}
-                  className={`border rounded p-4 shadow cursor-pointer relative transition hover:bg-gray-100 ${
-                    product.stock === 0 ? "opacity-50 pointer-events-none" : ""
-                  }`}
-                  onClick={() => addToCart(product)}
-                >
-                  <h2 className="font-semibold">{product.name}</h2>
-                  <p>
-                    {product.size} - {product.packaging}
-                  </p>
-                  <p>Rs. {product.price.toFixed(2)}</p>
-                  <p className="text-sm text-gray-500">
-                    Stock: {product.stock}
-                  </p>
-                  {product.stock <= 10 && product.stock > 0 && (
-                    <span className="absolute top-2 right-2 bg-yellow-400 text-xs text-black px-2 py-1 rounded">
-                      Low
-                    </span>
-                  )}
-                  {product.stock === 0 && (
-                    <span className="absolute top-2 right-2 bg-red-500 text-xs text-white px-2 py-1 rounded">
-                      Out
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
+          <div key={size} className="space-y-4">
+            <h2 className="text-xl font-bold text-slate-800 px-2">
+              {size} Products
+            </h2>
+            {items.length === 0 ? (
+              <div className="modern-card text-center py-8">
+                <p className="text-slate-400">No products found in this category</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {items.map((product) => (
+                  <div
+                    key={product.id}
+                    className={`modern-card cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-300 active:scale-95 active:bg-gradient-to-br active:from-purple-50 active:to-pink-50 relative overflow-hidden ${
+                      product.stock === 0 ? "opacity-50 pointer-events-none" : ""
+                    }`}
+                    onClick={() => addToCart(product)}
+                  >
+                    {product.stock <= 10 && product.stock > 0 && (
+                      <span className="absolute top-2 right-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                        Low Stock
+                      </span>
+                    )}
+                    {product.stock === 0 && (
+                      <span className="absolute top-2 right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
+                        Out of Stock
+                      </span>
+                    )}
+                    <div className="mb-3">
+                      <h3 className="font-bold text-lg text-slate-900 mb-1">
+                        {product.name}
+                      </h3>
+                      <p className="text-sm text-slate-600">
+                        {product.size} - {product.packaging}
+                      </p>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="text-2xl font-bold mb-2" style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                      }}>
+                        Rs. {product.price.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        Stock: {product.stock}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
 
-      <div className="w-full md:w-96 border p-4 mt-12 rounded shadow">
-        <h2 className="text-xl font-semibold mb-4">🛒 Cart</h2>
-        {cart.map((item) => (
-          <div key={item.id} className="mb-2 border-b pb-2">
-            <div className="flex justify-between items-center">
+      {/* Cart Section */}
+      <div className="w-full lg:w-96 xl:w-[420px] space-y-4">
+        <div className="modern-card sticky top-6">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold mb-2" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Shopping Cart
+            </h2>
+            <p className="text-sm text-slate-600">
+              {cart.length} {cart.length === 1 ? "item" : "items"} in cart
+            </p>
+          </div>
+
+          {/* Cart Items */}
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            {cart.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-slate-400">Your cart is empty</p>
+                <p className="text-xs text-slate-300 mt-2">Add products to get started</p>
+              </div>
+            ) : (
+              cart.map((item) => (
+                <div key={item.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                  {/* Item Header */}
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-slate-900">{item.name}</h4>
+                      <p className="text-xs text-slate-600 mt-1">
+                        {item.size} - {item.packaging}
+                      </p>
+                      <p className="text-sm font-semibold text-slate-700 mt-1">
+                        Rs. {item.price.toFixed(2)} each
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => removeFromCart(item.id)}
+                      className="px-2 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded text-xs font-bold hover:shadow-lg transition-all"
+                      title="Remove"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Quantity Controls */}
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-700">Quantity:</label>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => decreaseQty(item.id)}
+                        className="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-all hover:scale-110"
+                      >
+                        −
+                      </button>
+                      <span className="w-10 text-center font-bold text-slate-900">{item.quantity}</span>
+                      <button
+                        onClick={() => increaseQty(item.id)}
+                        className="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-all hover:scale-110"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Discount Controls */}
+                  <div className="space-y-2 pt-2 border-t border-slate-200">
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs font-semibold text-slate-700 w-20">Discount:</label>
+                      <input
+                        type="number"
+                        value={item.discount || ""}
+                        className="flex-1 px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="0"
+                        onChange={(e) =>
+                          updateCartItem(item.id, { discount: Number(e.target.value) || 0 })
+                        }
+                      />
+                      <select
+                        className="px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        value={item.discountType}
+                        onChange={(e) =>
+                          updateCartItem(item.id, {
+                            discountType: e.target.value as "flat" | "percentage",
+                          })
+                        }
+                      >
+                        <option value="flat">Rs.</option>
+                        <option value="percentage">%</option>
+                      </select>
+                    </div>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={item.free || false}
+                        onChange={(e) =>
+                          updateCartItem(item.id, { free: e.target.checked })
+                        }
+                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                      />
+                      <span className="text-xs font-semibold text-slate-700">Mark as Free</span>
+                    </label>
+                  </div>
+
+                  {/* Item Total */}
+                  <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
+                    <span className="text-xs text-slate-600">Item Total:</span>
+                    <span className="font-bold text-slate-900">
+                      Rs. {calculateItemTotal(item).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Cart Summary */}
+          {cart.length > 0 && (
+            <div className="mt-6 pt-6 border-t border-slate-200 space-y-4">
+              {/* Bill Discount */}
               <div>
-                <p className="font-semibold">{item.name}</p>
-                <p className="text-sm text-gray-600">
-                  {item.size} - {item.packaging}
-                </p>
-                <p className="text-sm">Rs. {item.price.toFixed(2)}</p>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Bill Discount
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="Discount amount"
+                    value={discount}
+                    onChange={(e) =>
+                      setDiscount(
+                        e.target.value === "" ? "" : Number(e.target.value)
+                      )
+                    }
+                  />
+                  <select
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    value={isPercentage ? "percentage" : "flat"}
+                    onChange={(e) =>
+                      setIsPercentage(e.target.value === "percentage")
+                    }
+                  >
+                    <option value="flat">Rs.</option>
+                    <option value="percentage">%</option>
+                  </select>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  className="border p-1 rounded"
-                  onClick={() => decreaseQty(item.id)}
-                >
-                  <Minus size={16} />
-                </button>
-                <span>{item.quantity}</span>
-                <button
-                  className="border p-1 rounded"
-                  onClick={() => increaseQty(item.id)}
-                >
-                  <Plus size={16} />
-                </button>
+
+              {/* Total */}
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-slate-700">Grand Total:</span>
+                  <span className="text-2xl font-bold" style={{
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}>
+                    Rs. {grandTotal.toFixed(2)}
+                  </span>
+                </div>
               </div>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              <label className="text-sm">Discount:</label>
-              <input
-                type="number"
-                value={item.discount || ""}
-                className="border p-1 w-16"
-                onChange={(e) =>
-                  updateCartItem(item.id, { discount: Number(e.target.value) })
-                }
-              />
-              <select
-                className="border p-1"
-                value={item.discountType}
-                onChange={(e) =>
-                  updateCartItem(item.id, {
-                    discountType: e.target.value as "flat" | "percentage",
-                  })
-                }
-              >
-                <option value="flat">Rs.</option>
-                <option value="percentage">%</option>
-              </select>
-              <label className="text-sm ml-auto flex items-center gap-1">
-                <input
-                  type="checkbox"
-                  checked={item.free || false}
-                  onChange={(e) =>
-                    updateCartItem(item.id, { free: e.target.checked })
-                  }
-                />
-                Free
-              </label>
+
+              {/* Checkout Button */}
               <button
-                className="text-red-500 text-xs ml-2"
-                onClick={() => removeFromCart(item.id)}
+                className="modern-btn modern-btn-primary w-full text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={cart.length === 0}
+                onClick={() => setShowModal(true)}
               >
-                ✕
+                Proceed to Checkout
               </button>
             </div>
-          </div>
-        ))}
-
-        <div className="mt-4 border-t pt-4">
-          <div className="mb-2">
-            <label className="text-sm">Bill Discount:</label>
-            <div className="flex gap-2 mt-1">
-              <input
-                type="number"
-                className="border p-1 w-24"
-                placeholder="Discount"
-                value={discount}
-                onChange={(e) =>
-                  setDiscount(
-                    e.target.value === "" ? "" : Number(e.target.value)
-                  )
-                }
-              />
-              <select
-                className="border p-1"
-                value={isPercentage ? "percentage" : "flat"}
-                onChange={(e) =>
-                  setIsPercentage(e.target.value === "percentage")
-                }
-              >
-                <option value="flat">Rs.</option>
-                <option value="percentage">%</option>
-              </select>
-            </div>
-          </div>
-          <p className="font-semibold">Total: Rs. {grandTotal.toFixed(2)}</p>
-          <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded mt-2 w-full"
-            disabled={cart.length === 0}
-            onClick={() => setShowModal(true)}
-          >
-            Checkout
-          </button>
+          )}
         </div>
       </div>
 
+      {/* Checkout Modal */}
       {showModal && (
         <CheckoutModal
           cart={cart}
@@ -383,6 +518,7 @@ export default function BillingPage() {
         />
       )}
 
+      {/* Invoice (Hidden, for printing) */}
       <Invoice
         cart={cart}
         invoiceDate={invoiceDate}
