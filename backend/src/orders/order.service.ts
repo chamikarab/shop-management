@@ -84,7 +84,7 @@ export class OrderService {
         }
       }
 
-      updateData.items = updateData.items.map((item) => ({
+      const mappedItems = updateData.items.map((item) => ({
         productId: item.id,
         name: item.name,
         price: item.price,
@@ -93,6 +93,14 @@ export class OrderService {
         discountType: item.discountType ?? 'flat',
         free: item.free ?? false,
       }));
+
+      const updated = await this.orderModel.findOneAndUpdate(
+        { invoiceId },
+        { ...updateData, items: mappedItems },
+        { new: true },
+      );
+
+      return updated;
     }
 
     const updated = await this.orderModel.findOneAndUpdate(

@@ -18,11 +18,19 @@ export class MeController {
     }
 
     try {
-      const user = await this.jwtService.verifyAsync(token, {
-        secret: process.env.JWT_SECRET,
-      });
-
-      return { user }; // You can limit returned fields here if needed
+      // JwtService is already configured with the secret in the module
+      const decoded = await this.jwtService.verifyAsync(token);
+      
+      // Return the decoded user data (which includes sub, role, permissions, etc.)
+      return { 
+        user: {
+          _id: decoded.sub,
+          role: decoded.role,
+          permissions: decoded.permissions,
+          name: decoded.name,
+          email: decoded.email,
+        }
+      };
     } catch (error) {
       console.error('❌ Invalid token in /api/me:', error?.message || error);
       throw new UnauthorizedException('Invalid or expired token');

@@ -35,11 +35,14 @@ export class AuthController {
     const { accessToken, refreshToken } = this.authService.generateTokens(user);
 
     // Set access and refresh tokens as httpOnly cookies
+    // Note: Don't set domain to allow cookies to work across localhost and IP addresses
     res.cookie('access_token', accessToken, {
       httpOnly: true,
       sameSite: 'lax',
       secure: false,
       maxAge: 1000 * 60 * 15, // 15 minutes
+      path: '/',
+      // domain is not set to allow cookies to work on both localhost and IP
     });
 
     res.cookie('refresh_token', refreshToken, {
@@ -47,6 +50,8 @@ export class AuthController {
       sameSite: 'lax',
       secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      path: '/',
+      // domain is not set to allow cookies to work on both localhost and IP
     });
 
     return { message: 'Login successful' };
@@ -75,6 +80,7 @@ export class AuthController {
         sameSite: 'lax',
         secure: false,
         maxAge: 1000 * 60 * 15,
+        path: '/',
       });
 
       res.cookie('refresh_token', newRefreshToken, {
@@ -82,6 +88,7 @@ export class AuthController {
         sameSite: 'lax',
         secure: false,
         maxAge: 1000 * 60 * 60 * 24 * 7,
+        path: '/',
       });
 
       return { message: 'Token refreshed' };
