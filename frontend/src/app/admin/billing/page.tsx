@@ -14,6 +14,7 @@ interface Product {
   stock: number;
   size?: string;
   packaging?: string;
+  category?: string;
   discount?: number;
   discountType?: "flat" | "percentage";
   free?: boolean;
@@ -32,6 +33,8 @@ export default function BillingPage() {
   const [cashGiven, setCashGiven] = useState<number>(0);
   const [invoiceDate, setInvoiceDate] = useState<string>("");
   const [invoiceId, setInvoiceId] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPackaging, setSelectedPackaging] = useState<string | null>(null);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
   useEffect(() => {
@@ -54,6 +57,7 @@ export default function BillingPage() {
           stock: number;
           size?: string;
           packaging?: string;
+          category?: string;
           status?: string;
         };
         const mapped = data
@@ -65,6 +69,7 @@ export default function BillingPage() {
             stock: p.stock,
             size: p.size,
             packaging: p.packaging,
+            category: p.category,
             quantity: 1,
             discount: 0,
             discountType: "flat",
@@ -90,10 +95,49 @@ export default function BillingPage() {
     p.name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const categorized = ["750ml", "500ml", "330ml"].map((size) => ({
-    size,
-    items: filteredProducts.filter((p) => p.size === size),
-  }));
+  // Get unique categories
+  const categories = Array.from(
+    new Set(filteredProducts.map((p) => p.category).filter(Boolean))
+  ) as string[];
+
+  // Get packaging options for selected category
+  const packagingOptions = selectedCategory
+    ? Array.from(
+        new Set(
+          filteredProducts
+            .filter((p) => p.category === selectedCategory)
+            .map((p) => p.packaging)
+            .filter(Boolean)
+        )
+      )
+    : [];
+
+  // Get products for selected category and packaging
+  const displayedProducts = selectedCategory && selectedPackaging
+    ? filteredProducts.filter(
+        (p) =>
+          p.category === selectedCategory && p.packaging === selectedPackaging
+      )
+    : [];
+
+  // Navigation handlers
+  const handleCategoryClick = (category: string) => {
+    setSelectedCategory(category);
+    setSelectedPackaging(null);
+  };
+
+  const handlePackagingClick = (packaging: string) => {
+    setSelectedPackaging(packaging);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategory(null);
+    setSelectedPackaging(null);
+  };
+
+  const handleBackToPackaging = () => {
+    setSelectedPackaging(null);
+  };
 
   const addToCart = (product: Product) => {
     if (product.stock <= 0) return;
@@ -262,19 +306,126 @@ export default function BillingPage() {
           />
         </div>
 
-        {/* Product Categories */}
-        {categorized.map(({ size, items }) => (
-          <div key={size} className="space-y-4">
+        {/* Breadcrumb Navigation */}
+        {(selectedCategory || selectedPackaging) && (
+          <div className="modern-card">
+            <div className="flex items-center gap-2 text-sm">
+              <button
+                onClick={handleBackToCategories}
+                className="text-purple-600 hover:text-purple-800 font-semibold transition-colors"
+              >
+                Categories
+              </button>
+              {selectedCategory && (
+                <>
+                  <span className="text-slate-400">/</span>
+                  {selectedPackaging ? (
+                    <>
+                      <button
+                        onClick={handleBackToPackaging}
+                        className="text-purple-600 hover:text-purple-800 font-semibold transition-colors"
+                      >
+                        {selectedCategory}
+                      </button>
+                      <span className="text-slate-400">/</span>
+                      <span className="text-slate-700 font-semibold">
+                        {selectedPackaging}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-slate-700 font-semibold">
+                      {selectedCategory}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Categories View */}
+        {!selectedCategory && (
+          <div className="space-y-4">
             <h2 className="text-xl font-bold text-slate-800 px-2">
-              {size} Products
+              Categories
             </h2>
-            {items.length === 0 ? (
+            {categories.length === 0 ? (
               <div className="modern-card text-center py-8">
-                <p className="text-slate-400">No products found in this category</p>
+                <p className="text-slate-400">No categories found</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {items.map((product) => (
+                {categories.map((category) => (
+                  <div
+                    key={category}
+                    className="modern-card cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-300 active:scale-95 active:bg-gradient-to-br active:from-purple-50 active:to-pink-50 relative overflow-hidden"
+                    onClick={() => handleCategoryClick(category)}
+                  >
+                    <div className="mb-3">
+                      <h3 className="font-bold text-lg text-slate-900 mb-1">
+                        {category}
+                      </h3>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="text-xs text-slate-500">
+                        Click to view packaging options
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Packaging View */}
+        {selectedCategory && !selectedPackaging && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-slate-800 px-2">
+              Packaging Options - {selectedCategory}
+            </h2>
+            {packagingOptions.length === 0 ? (
+              <div className="modern-card text-center py-8">
+                <p className="text-slate-400">No packaging options found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {packagingOptions.map((packaging) => (
+                  <div
+                    key={packaging}
+                    className="modern-card cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-300 active:scale-95 active:bg-gradient-to-br active:from-purple-50 active:to-pink-50 relative overflow-hidden"
+                    onClick={() => handlePackagingClick(packaging)}
+                  >
+                    <div className="mb-3">
+                      <h3 className="font-bold text-lg text-slate-900 mb-1">
+                        {packaging}
+                      </h3>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="text-xs text-slate-500">
+                        Click to view products
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Products View */}
+        {selectedCategory && selectedPackaging && (
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold text-slate-800 px-2">
+              Products - {selectedCategory} ({selectedPackaging})
+            </h2>
+            {displayedProducts.length === 0 ? (
+              <div className="modern-card text-center py-8">
+                <p className="text-slate-400">No products found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {displayedProducts.map((product) => (
                   <div
                     key={product.id}
                     className={`modern-card cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-xl hover:border-purple-300 active:scale-95 active:bg-gradient-to-br active:from-purple-50 active:to-pink-50 relative overflow-hidden ${
@@ -296,9 +447,11 @@ export default function BillingPage() {
                       <h3 className="font-bold text-lg text-slate-900 mb-1">
                         {product.name}
                       </h3>
-                      <p className="text-sm text-slate-600">
-                        {product.size} - {product.packaging}
-                      </p>
+                      {product.size && (
+                        <p className="text-sm text-slate-600">
+                          {product.size}
+                        </p>
+                      )}
                     </div>
                     <div className="mt-4 pt-4 border-t border-slate-200">
                       <div className="text-2xl font-bold mb-2" style={{
@@ -318,7 +471,7 @@ export default function BillingPage() {
               </div>
             )}
           </div>
-        ))}
+        )}
       </div>
 
       {/* Cart Section */}
