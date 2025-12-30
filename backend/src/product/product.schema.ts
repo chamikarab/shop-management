@@ -11,6 +11,9 @@ export class Product {
   @Prop()
   category: string;
 
+  @Prop()
+  categoryColor: string; // Hex color code for category
+
   @Prop({ required: true })
   size: string; // e.g., "750ml", "500ml"
 

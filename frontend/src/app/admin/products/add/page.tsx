@@ -19,6 +19,7 @@ function AddProductPageContent() {
     const data = {
       name: (formData.get('name') as string)?.trim() || '',
       category: (formData.get('category') as string)?.trim() || '',
+      categoryColor: (formData.get('categoryColor') as string) || '#667eea',
       price: parseFloat((formData.get('price') as string) || '0'),
       stock: parseInt((formData.get('stock') as string) || '0'),
       status: (formData.get('status') as string) || 'Available',
@@ -94,6 +95,44 @@ function AddProductPageContent() {
               placeholder="Enter category (e.g., Beer, Wine, etc.)"
               className="modern-input"
             />
+          </div>
+
+          {/* Category Color */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Category Color
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                name="categoryColor"
+                type="color"
+                id="categoryColorPicker"
+                defaultValue="#667eea"
+                className="w-16 h-10 rounded-lg border border-slate-300 cursor-pointer"
+                onChange={(e) => {
+                  const textInput = e.target.form?.querySelector('input[name="categoryColorText"]') as HTMLInputElement;
+                  if (textInput) {
+                    textInput.value = e.target.value;
+                  }
+                }}
+              />
+              <input
+                type="text"
+                name="categoryColorText"
+                id="categoryColorText"
+                defaultValue="#667eea"
+                placeholder="#667eea"
+                className="flex-1 modern-input"
+                pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                onChange={(e) => {
+                  const colorInput = e.target.form?.querySelector('input[name="categoryColor"]') as HTMLInputElement;
+                  if (colorInput && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value)) {
+                    colorInput.value = e.target.value;
+                  }
+                }}
+              />
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Choose a color for this category (used in POS display)</p>
           </div>
 
           {/* Price and Stock Row */}
