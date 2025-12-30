@@ -7,6 +7,7 @@ type Product = {
   _id: string;
   name: string;
   category?: string;
+  categoryColor?: string;
   size?: string;
   packaging?: string;
   price: number;
@@ -53,6 +54,7 @@ function ProductsPage() {
     const updatedProduct = {
       name: (formData.get('name') as string) || '',
       category: (formData.get('category') as string) || '',
+      categoryColor: (formData.get('categoryColor') as string) || '#667eea',
       size: (formData.get('size') as string) || '',
       packaging: (formData.get('packaging') as string) || '',
       price: parseFloat((formData.get('price') as string) || '0'),
@@ -298,6 +300,42 @@ function ProductsPage() {
                     placeholder="Category"
                   />
                 </div>
+              </div>
+
+              {/* Category Color */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Category Color
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    name="categoryColor"
+                    type="color"
+                    defaultValue={editing.categoryColor || '#667eea'}
+                    className="w-16 h-10 rounded-lg border border-slate-300 cursor-pointer"
+                    onChange={(e) => {
+                      const textInput = e.target.form?.querySelector('input[name="categoryColorText"]') as HTMLInputElement;
+                      if (textInput) {
+                        textInput.value = e.target.value;
+                      }
+                    }}
+                  />
+                  <input
+                    type="text"
+                    name="categoryColorText"
+                    defaultValue={editing.categoryColor || '#667eea'}
+                    placeholder="#667eea"
+                    className="flex-1 modern-input"
+                    pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+                    onChange={(e) => {
+                      const colorInput = e.target.form?.querySelector('input[name="categoryColor"]') as HTMLInputElement;
+                      if (colorInput && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(e.target.value)) {
+                        colorInput.value = e.target.value;
+                      }
+                    }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">Choose a color for this category (used in POS display)</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
