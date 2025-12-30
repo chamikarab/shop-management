@@ -280,23 +280,36 @@ export default function BillingPage() {
       {/* Products Section */}
       <div className="flex-1 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-4xl font-bold mb-2" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
-            Point of Sale
-          </h1>
-          <p className="text-slate-600">Select products to add to cart</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2" style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              Point of Sale
+            </h1>
+            <p className="text-slate-600">Select products to add to cart</p>
+          </div>
         </div>
 
         {/* Search Bar */}
         <div className="modern-card">
-          <label className="block text-sm font-semibold text-slate-700 mb-2">
-            Search Products
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              Search Products
+            </label>
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="text-xs text-purple-600 hover:text-purple-800 font-semibold transition-colors px-2 py-1 hover:bg-purple-50 rounded"
+                title="Clear search"
+              >
+                Clear
+              </button>
+            )}
+          </div>
           <input
             type="text"
             placeholder="Type product name to search..."
@@ -346,7 +359,7 @@ export default function BillingPage() {
         {/* Categories View */}
         {!selectedCategory && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-800 px-2">
+            <h2 className="text-xl font-bold text-slate-800">
               Categories
             </h2>
             {categories.length === 0 ? (
@@ -354,7 +367,7 @@ export default function BillingPage() {
                 <p className="text-slate-400">No categories found</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {categories.map((category) => (
                   <div
                     key={category}
@@ -381,7 +394,7 @@ export default function BillingPage() {
         {/* Packaging View */}
         {selectedCategory && !selectedPackaging && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-800 px-2">
+            <h2 className="text-xl font-bold text-slate-800">
               Packaging Options - {selectedCategory}
             </h2>
             {packagingOptions.length === 0 ? (
@@ -389,7 +402,7 @@ export default function BillingPage() {
                 <p className="text-slate-400">No packaging options found</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {packagingOptions.map((packaging) => (
                   <div
                     key={packaging}
@@ -416,7 +429,7 @@ export default function BillingPage() {
         {/* Products View */}
         {selectedCategory && selectedPackaging && (
           <div className="space-y-4">
-            <h2 className="text-xl font-bold text-slate-800 px-2">
+            <h2 className="text-xl font-bold text-slate-800">
               Products - {selectedCategory} ({selectedPackaging})
             </h2>
             {displayedProducts.length === 0 ? (
@@ -424,7 +437,7 @@ export default function BillingPage() {
                 <p className="text-slate-400">No products found</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {displayedProducts.map((product) => (
                   <div
                     key={product.id}
@@ -475,24 +488,51 @@ export default function BillingPage() {
       </div>
 
       {/* Cart Section */}
-      <div className="w-full lg:w-96 xl:w-[420px] space-y-4">
-        <div className="modern-card sticky top-6">
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold mb-2" style={{
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}>
-              Shopping Cart
-            </h2>
-            <p className="text-sm text-slate-600">
+      <div className="w-full lg:w-[500px] xl:w-[550px] space-y-6">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-0">
+              <h1 className="text-4xl font-bold" style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}>
+                Shopping Cart
+              </h1>
+              {cart.length > 0 && (
+                <button
+                  onClick={() => {
+                    // Return stock to products before clearing cart
+                    cart.forEach((item) => {
+                      setProducts((prev) =>
+                        prev.map((p) =>
+                          p.id === item.id
+                            ? { ...p, stock: p.stock + item.quantity }
+                            : p
+                        )
+                      );
+                    });
+                    setCart([]);
+                    toast.success("Cart cleared");
+                  }}
+                  className="text-xs text-red-600 hover:text-red-800 font-semibold transition-colors px-2 py-1 hover:bg-red-50 rounded flex-shrink-0 ml-2"
+                  title="Clear cart"
+                >
+                  Clear Cart
+                </button>
+              )}
+            </div>
+            <p className="text-slate-600">
               {cart.length} {cart.length === 1 ? "item" : "items"} in cart
             </p>
           </div>
+        </div>
 
+        <div className="modern-card sticky top-6">
           {/* Cart Items */}
-          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar mb-6">
             {cart.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-slate-400">Your cart is empty</p>
@@ -500,62 +540,63 @@ export default function BillingPage() {
               </div>
             ) : (
               cart.map((item) => (
-                <div key={item.id} className="p-4 bg-slate-50 rounded-lg border border-slate-200 space-y-3">
+                <div key={item.id} className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
                   {/* Item Header */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-900">{item.name}</h4>
-                      <p className="text-xs text-slate-600 mt-1">
-                        {item.size} - {item.packaging}
-                      </p>
-                      <p className="text-sm font-semibold text-slate-700 mt-1">
-                        Rs. {item.price.toFixed(2)} each
-                      </p>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-bold text-sm text-slate-900 truncate">{item.name}</h4>
+                        <button
+                          onClick={() => removeFromCart(item.id)}
+                          className="px-1.5 py-0.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded text-xs font-bold hover:shadow-lg transition-all flex-shrink-0"
+                          title="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-xs text-slate-600">
+                          {item.size} - {item.packaging}
+                        </p>
+                        <span className="text-xs text-slate-400">•</span>
+                        <p className="text-xs font-semibold text-slate-700">
+                          Rs. {item.price.toFixed(2)} each
+                        </p>
+                      </div>
                     </div>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="px-2 py-1 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded text-xs font-bold hover:shadow-lg transition-all"
-                      title="Remove"
-                    >
-                      ✕
-                    </button>
                   </div>
 
-                  {/* Quantity Controls */}
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700">Quantity:</label>
-                    <div className="flex items-center gap-2">
+                  {/* Quantity and Discount Controls - Compact */}
+                  <div className="flex items-center gap-2 pt-1.5 border-t border-slate-200">
+                    <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">Qty:</label>
+                    <div className="flex items-center gap-1">
                       <button
                         onClick={() => decreaseQty(item.id)}
-                        className="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-all hover:scale-110"
+                        className="w-6 h-6 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-bold transition-all"
                       >
                         −
                       </button>
-                      <span className="w-10 text-center font-bold text-slate-900">{item.quantity}</span>
+                      <span className="w-8 text-center text-xs font-bold text-slate-900">{item.quantity}</span>
                       <button
                         onClick={() => increaseQty(item.id)}
-                        className="w-8 h-8 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg font-bold transition-all hover:scale-110"
+                        className="w-6 h-6 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded text-xs font-bold transition-all"
                       >
                         +
                       </button>
                     </div>
-                  </div>
-
-                  {/* Discount Controls */}
-                  <div className="space-y-2 pt-2 border-t border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <label className="text-xs font-semibold text-slate-700 w-20">Discount:</label>
+                    <div className="flex-1 flex items-center gap-1 ml-2">
+                      <label className="text-xs font-semibold text-slate-700 whitespace-nowrap">Disc:</label>
                       <input
                         type="number"
                         value={item.discount || ""}
-                        className="flex-1 px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="flex-1 px-1.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                         placeholder="0"
                         onChange={(e) =>
                           updateCartItem(item.id, { discount: Number(e.target.value) || 0 })
                         }
                       />
                       <select
-                        className="px-2 py-1.5 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="px-1.5 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                         value={item.discountType}
                         onChange={(e) =>
                           updateCartItem(item.id, {
@@ -567,25 +608,27 @@ export default function BillingPage() {
                         <option value="percentage">%</option>
                       </select>
                     </div>
-                    <label className="flex items-center gap-2 cursor-pointer">
+                  </div>
+
+                  {/* Free Checkbox and Item Total - Same Line */}
+                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-200">
+                    <label className="flex items-center gap-1.5 cursor-pointer">
                       <input
                         type="checkbox"
                         checked={item.free || false}
                         onChange={(e) =>
                           updateCartItem(item.id, { free: e.target.checked })
                         }
-                        className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                        className="w-3.5 h-3.5 text-purple-600 rounded focus:ring-purple-500"
                       />
-                      <span className="text-xs font-semibold text-slate-700">Mark as Free</span>
+                      <span className="text-xs font-semibold text-slate-700">Free</span>
                     </label>
-                  </div>
-
-                  {/* Item Total */}
-                  <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
-                    <span className="text-xs text-slate-600">Item Total:</span>
-                    <span className="font-bold text-slate-900">
-                      Rs. {calculateItemTotal(item).toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600">Total:</span>
+                      <span className="text-sm font-bold text-slate-900">
+                        Rs. {calculateItemTotal(item).toFixed(2)}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ))
