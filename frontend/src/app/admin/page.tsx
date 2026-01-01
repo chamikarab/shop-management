@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
+import Link from "next/link";
 
 type SummaryData = {
   totalProducts: number;
@@ -172,28 +173,24 @@ export default function AdminDashboard() {
           Quick Actions
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <a
+          <Link
             href="/admin/products/add"
-            className="modern-btn modern-btn-primary text-center block"
+            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-4 px-6 rounded-2xl hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 text-center shadow-lg"
           >
             ➕ Add New Product
-          </a>
-          <a
+          </Link>
+          <Link
             href="/admin/billing"
-            className="modern-btn modern-btn-secondary text-center block"
+            className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold py-4 px-6 rounded-2xl hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 text-center shadow-lg"
           >
-            🛒 New Sale
-          </a>
-          <a
+            🛒 New Sale (POS)
+          </Link>
+          <Link
             href="/admin/orders"
-            className="modern-btn modern-btn-primary text-center block"
-            style={{
-              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-              boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-            }}
+            className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-4 px-6 rounded-2xl hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 text-center shadow-lg"
           >
             📋 View Orders
-          </a>
+          </Link>
         </div>
       </div>
 
