@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
+import Link from "next/link";
 import "../../styles/users.css";
 import WithPermission from "@/components/WithPermission";
 
@@ -247,21 +248,16 @@ function AddUserForm() {
 
           {/* Action Buttons */}
           <div className="flex gap-4 pt-4 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={() => router.push("/admin/users")}
-              className="flex-1 px-6 py-3 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-all"
+            <Link
+              href="/admin/users"
+              className="flex-1 px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-all text-center border-2 border-slate-200"
             >
               Cancel
-            </button>
+            </Link>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 modern-btn modern-btn-primary"
-              style={{
-                opacity: loading ? 0.7 : 1,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
+              className="flex-[1.5] bg-gradient-to-r from-green-600 via-green-500 to-green-600 text-white font-black py-4 rounded-2xl hover:from-green-700 hover:to-green-700 shadow-xl shadow-green-100 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">

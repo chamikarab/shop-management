@@ -11,6 +11,7 @@ import {
   FaUserPlus,
   FaListUl,
   FaShoppingCart,
+  FaCashRegister,
 } from "react-icons/fa";
 import "./styles/admin.css";
 
@@ -141,6 +142,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
 
           <nav className="space-y-6">
+            <div>
+              <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
+                {!collapsed && "Sales"}
+              </span>
+              <div className="space-y-1">
+                <Link
+                  href="/admin/billing"
+                  className={`sidebar-link ${pathname === "/admin/billing" ? "active" : ""}`}
+                >
+                  <FaCashRegister />
+                  {!collapsed && <span>Point of Sale</span>}
+                </Link>
+              </div>
+            </div>
+
             <div>
               <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
                 {!collapsed && "Dashboard"}
