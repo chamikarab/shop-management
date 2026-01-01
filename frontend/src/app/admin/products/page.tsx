@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { toast } from "react-toastify";
+import toast from "react-hot-toast";
+import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
 
 type Product = {
@@ -54,7 +55,7 @@ function ProductsPage() {
     const updatedProduct = {
       name: (formData.get('name') as string) || '',
       category: (formData.get('category') as string) || '',
-      categoryColor: (formData.get('categoryColor') as string) || '#667eea',
+      categoryColor: (formData.get('categoryColorText') as string) || (formData.get('categoryColor') as string) || '#667eea',
       size: (formData.get('size') as string) || '',
       packaging: (formData.get('packaging') as string) || '',
       price: parseFloat((formData.get('price') as string) || '0'),
@@ -108,7 +109,7 @@ function ProductsPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold mb-2" style={{
+          <h1 className="text-3xl sm:text-4xl font-black mb-2 tracking-tight" style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -116,14 +117,14 @@ function ProductsPage() {
           }}>
             Product Management
           </h1>
-          <p className="text-slate-600">Manage your product inventory and stock levels</p>
+          <p className="text-slate-600 font-medium">Manage your product inventory and stock levels</p>
         </div>
-        <a
+        <Link
           href="/admin/products/add"
-          className="modern-btn modern-btn-primary self-start md:self-center"
+          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 shadow-lg text-center"
         >
           Add New Product
-        </a>
+        </Link>
       </div>
 
       {/* Search and Filter Section */}
