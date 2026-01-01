@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
 
 type User = {
@@ -54,10 +56,19 @@ function AllUsersPage() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this user?")) {
-      await fetch(`${apiUrl}/users/${id}`, {
-        method: "DELETE",
-      });
-      fetchUsers();
+      try {
+        const res = await fetch(`${apiUrl}/users/${id}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          toast.success("User deleted successfully");
+          fetchUsers();
+        } else {
+          toast.error("Failed to delete user");
+        }
+      } catch (err) {
+        toast.error("An error occurred");
+      }
     }
   };
 
@@ -70,22 +81,33 @@ function AllUsersPage() {
   const handleSaveEdit = async () => {
     if (!editUser) return;
 
-    await fetch(`${apiUrl}/users/${editUser._id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: editRole,
-        permissions: editPermissions,
-      }),
-    });
+    try {
+      const res = await fetch(`${apiUrl}/users/${editUser._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: editRole,
+          permissions: editPermissions,
+        }),
+      });
 
-    setEditUser(null);
-    await fetchUsers();
+      if (res.ok) {
+        toast.success("User updated successfully");
+        setEditUser(null);
+        await fetchUsers();
 
-    if (editUser._id === currentUserId) {
-      console.log("🔁 Updating permissions for current user...");
-      localStorage.setItem("forcePermissionReload", Date.now().toString());
-      window.location.reload(); // Force full refresh to update sidebar immediately
+        if (editUser._id === currentUserId) {
+          toast.loading("Updating permissions... Page will reload.");
+          localStorage.setItem("forcePermissionReload", Date.now().toString());
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        }
+      } else {
+        toast.error("Failed to update user");
+      }
+    } catch (err) {
+      toast.error("An error occurred");
     }
   };
 
@@ -111,7 +133,7 @@ function AllUsersPage() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold mb-2" style={{
+          <h1 className="text-3xl sm:text-4xl font-black mb-2 tracking-tight" style={{
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
@@ -119,14 +141,14 @@ function AllUsersPage() {
           }}>
             User Management
           </h1>
-          <p className="text-slate-600">Manage user accounts, roles, and permissions</p>
+          <p className="text-slate-600 font-medium">Manage user accounts, roles, and permissions</p>
         </div>
-        <a
+        <Link
           href="/admin/users/add"
-          className="modern-btn modern-btn-primary self-start md:self-center"
+          className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-bold px-6 py-3 rounded-xl hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200 shadow-lg text-center"
         >
           Add New User
-        </a>
+        </Link>
       </div>
 
       {/* Search and Filter Section */}
