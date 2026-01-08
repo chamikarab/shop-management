@@ -1,18 +1,20 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { 
   FaTag, FaBarcode, FaImage, 
-  FaCubes, FaShieldAlt, FaRocket
+  FaCubes, FaShieldAlt, FaRocket, FaArrowLeft
 } from "react-icons/fa";
 import WithPermission from "@/components/WithPermission";
 
-function AddProductPageContent() {
+function ModifyProductPageContent() {
+  const { id } = useParams();
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
   // Form state for preview
@@ -27,6 +29,40 @@ function AddProductPageContent() {
     packaging: "",
   });
 
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${apiUrl}/products/${id}`);
+        const data = await res.json();
+        if (data) {
+          setFormData({
+            name: data.name || "",
+            category: data.category || "",
+            categoryColor: data.categoryColor || "#667eea",
+            price: data.price || 0,
+            stock: data.stock || 0,
+            status: data.status || "Available",
+            size: data.size || "",
+            packaging: data.packaging || "",
+          });
+        } else {
+          toast.error("Product not found");
+          router.push("/admin/products");
+        }
+      } catch (error) {
+        console.error("Failed to fetch product", error);
+        toast.error("Failed to load product details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, apiUrl, router]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -37,7 +73,7 @@ function AddProductPageContent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setLoading(true);
+    setSaving(true);
 
     const data = {
       ...formData,
@@ -47,72 +83,88 @@ function AddProductPageContent() {
 
     if (!data.name || isNaN(data.price) || isNaN(data.stock)) {
       toast.error("Please ensure all required fields are filled correctly.");
-      setLoading(false);
+      setSaving(false);
       return;
     }
 
     if (data.stock === 0) data.status = "Out of Stock";
 
     try {
-      const res = await fetch(`${apiUrl}/products`, {
-        method: "POST",
+      const res = await fetch(`${apiUrl}/products/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
 
       if (res.ok) {
-        toast.success("Product successfully deployed to catalog!");
+        toast.success("Product successfully synchronized!");
         router.push("/admin/products");
       } else {
-        toast.error("Failed to register product.");
+        toast.error("Failed to update product.");
       }
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred during deployment.");
+      toast.error("An error occurred during synchronization.");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="text-center space-y-6">
+          <div className="relative w-20 h-20 mx-auto">
+            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
+            <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin" />
+          </div>
+          <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Accessing SKU Database...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 min-h-screen bg-[#f8fafc]">
       {/* 2026 Ultra-Modern Studio Header */}
       <div className="relative mb-10 pt-0">
-        {/* Ambient background architectural glow */}
         <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
           <div className="flex items-start gap-12">
-            
-      
-
             <div className="space-y-8">
               {/* Futuristic Breadcrumb */}
               <nav className="flex items-center gap-4">
-                <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
+                <Link href="/admin/products" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Inventory</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
-                <Link href="/admin/products" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">All Products</Link>
-                <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
-                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">Add New Product</span>
+                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">Modify SKU</span>
               </nav>
 
               <div className="space-y-2">
                 <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
-               
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New Product</span>
+                  Modify 
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic"> Product</span>
                 </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
-                  Architecting next-generation SKU metadata for your global retail ecosystem.
+                <p className="text-slate-400 font-medium text-xl md:text-2xl max-w-xl leading-relaxed">
+                  Refining architectural SKU metadata for high-performance retail synchronization.
                 </p>
               </div>
             </div>
           </div>
 
-        
           <div className="flex flex-col items-end gap-6">
-          
-            
-            
+            <div className="px-8 py-5 bg-slate-900 rounded-[2.8rem] shadow-[0_30px_60px_rgba(0,0,0,0.12)] flex items-center gap-8 border border-white/10 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+              <div className="flex flex-col relative z-10">
+                <span className="text-[9px] font-black text-indigo-300/60 uppercase tracking-[0.25em] mb-1.5">Record ID</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest">{id?.toString().slice(-12)}</span>
+              </div>
+              <div className="w-px h-10 bg-white/10 relative z-10" />
+              <div className="flex flex-col relative z-10">
+                <span className="text-[9px] font-black text-indigo-300/60 uppercase tracking-[0.25em] mb-1.5">Last Sync</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest">Just Now</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -296,18 +348,18 @@ function AddProductPageContent() {
               </Link>
               <button
                 type="submit"
-                disabled={loading}
+                disabled={saving}
                 className="flex-[2] bg-slate-900 text-white font-black uppercase tracking-widest text-[14px] py-6 rounded-[2.5rem] hover:bg-indigo-600 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-xl shadow-slate-200"
               >
-                {loading ? (
+                {saving ? (
                   <>
                     <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Processing SKU...</span>
+                    <span>Synchronizing SKU...</span>
                   </>
                 ) : (
                   <>
                     <FaRocket size={18} />
-                    <span>Add Product</span>
+                    <span>Synchronize Asset</span>
                   </>
                 )}
               </button>
@@ -360,7 +412,7 @@ function AddProductPageContent() {
 
               <div className="p-10 space-y-10 bg-white relative">
                 <div>
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tighter line-clamp-1 mb-2 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="text-3xl font-black text-slate-900 tracking-tighter line-clamp-1 mb-2 group-hover:text-indigo-600 transition-colors duration-300">
                     {formData.name || "Untitled Product"}
                   </h3>
                   <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
@@ -397,22 +449,22 @@ function AddProductPageContent() {
                   <FaShieldAlt size={20} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-white uppercase tracking-widest">Deployment Guard</h4>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">SKU Validation Active</p>
+                  <h4 className="text-xs font-black text-white uppercase tracking-widest">Synchronization Guard</h4>
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">Real-time Validation Active</p>
                 </div>
               </div>
               <ul className="space-y-4 text-[11px] text-slate-400 font-medium leading-relaxed">
                 <li className="flex gap-3">
                   <span className="text-indigo-500 font-black">01.</span>
-                  Automated SKU generation and POS node synchronization.
+                  Atomic updates to the global product mesh.
                 </li>
                 <li className="flex gap-3">
                   <span className="text-indigo-500 font-black">02.</span>
-                  Inventory locking until successful database commitment.
+                  Automatic cache invalidation across POS nodes.
                 </li>
                 <li className="flex gap-3">
                   <span className="text-indigo-500 font-black">03.</span>
-                  Integrated stock health monitoring with alert threshold (10 units).
+                  Asset versioning and integrity verification.
                 </li>
               </ul>
             </div>
@@ -423,10 +475,11 @@ function AddProductPageContent() {
   );
 }
 
-export default function AddProductPage() {
+export default function ModifyProductPage() {
   return (
-    <WithPermission required="products:add">
-      <AddProductPageContent />
+    <WithPermission required="products:edit">
+      <ModifyProductPageContent />
     </WithPermission>
   );
 }
+

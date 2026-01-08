@@ -217,7 +217,6 @@ select.modern-input:focus {
 
 .modern-table tbody tr:hover {
   background: #f8fafc;
-  transform: scale(1.01);
 }
 
 /* Loading States */
