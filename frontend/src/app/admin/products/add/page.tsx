@@ -89,53 +89,30 @@ function AddProductPageContent() {
             <div className="space-y-8">
               {/* Futuristic Breadcrumb */}
               <nav className="flex items-center gap-4">
-                <Link href="/admin/products" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Inventory</Link>
+                <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
+                <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
+                <Link href="/admin/products" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">All Products</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">Add New Product</span>
               </nav>
 
               <div className="space-y-2">
                 <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
-                  New 
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic"> Product</span>
+               
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New Product</span>
                 </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl max-w-xl leading-relaxed">
+                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
                   Architecting next-generation SKU metadata for your global retail ecosystem.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* High-Performance Status Module */}
+        
           <div className="flex flex-col items-end gap-6">
-            <div className="px-8 py-5 bg-slate-900 rounded-[2.8rem] shadow-[0_30px_60px_rgba(0,0,0,0.12)] flex items-center gap-8 border border-white/10 relative overflow-hidden group">
-              {/* Inner glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              
-              <div className="flex flex-col relative z-10">
-                <span className="text-[9px] font-black text-indigo-300/60 uppercase tracking-[0.25em] mb-1.5">System Health</span>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full shadow-[0_0_15px_rgba(52,211,153,0.8)] animate-pulse" />
-                  <span className="text-xs font-black text-white uppercase tracking-widest">Optimized</span>
-                </div>
-              </div>
-              
-              <div className="w-px h-10 bg-white/10 relative z-10" />
-              
-              <div className="flex flex-col relative z-10">
-                <span className="text-[9px] font-black text-indigo-300/60 uppercase tracking-[0.25em] mb-1.5">Sync Mesh</span>
-                <span className="text-xs font-black text-white uppercase tracking-widest">Active_12ms</span>
-              </div>
-            </div>
+          
             
-            <div className="flex items-center gap-3 mr-8">
-              <div className="flex gap-1">
-                <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '200ms' }} />
-                <div className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: '400ms' }} />
-              </div>
-              <span className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.3em]">Processing Catalog_Engine_v4.2</span>
-            </div>
+            
           </div>
         </div>
       </div>
