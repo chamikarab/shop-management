@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
-import { FaClipboardList, FaBox } from "react-icons/fa";
+import { 
+  FaClipboardList, FaBox, FaFilter, FaTimes, FaSearch, 
+  FaArrowUp, FaArrowDown, FaCalendarAlt, FaCreditCard, 
+  FaMoneyBillWave, FaGlobe, FaArrowRight
+} from "react-icons/fa";
 import Link from "next/link";
+import WithPermission from "@/components/WithPermission";
 
 interface OrderItem {
   productId: string;
@@ -29,43 +34,61 @@ interface Order {
   updatedAt: string;
 }
 
-export default function OrdersPage() {
+function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [filterPaymentType, setFilterPaymentType] = useState<string>("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [sortBy, setSortBy] = useState<keyof Order>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-  useEffect(() => {
-    fetch(`${apiUrl}/orders`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => {
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${apiUrl}/orders`, { credentials: "include" });
+      const data = await res.json();
         const ordersData = data.data || data;
 
         if (Array.isArray(ordersData)) {
           setOrders(ordersData);
-          setFilteredOrders(ordersData);
         } else {
           console.error("Expected array but got:", ordersData);
           toast.error("Invalid data format from server");
         }
-
-        setLoading(false);
-      })
-      .catch((err) => {
+    } catch (err) {
         console.error("Failed to fetch orders", err);
         toast.error("Failed to fetch orders");
+    } finally {
         setLoading(false);
-      });
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  // Stats calculation
+  const stats = useMemo(() => {
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+    const today = new Date().toISOString().split('T')[0];
+    const todaysOrdersList = orders.filter(o => o.createdAt.startsWith(today));
+    const todaysOrders = todaysOrdersList.length;
+    const todaysRevenue = todaysOrdersList.reduce((sum, order) => sum + order.total, 0);
+    
+    return { totalOrders, totalRevenue, todaysOrders, todaysRevenue };
+  }, [orders]);
+
+  const filteredAndSortedOrders = useMemo(() => {
     const lowerSearch = search.toLowerCase();
 
-    setFilteredOrders(
-      orders.filter((order) => {
+    return orders
+      .filter((order) => {
         const invoiceId = order.invoiceId;
         const formattedDate = new Date(order.createdAt).toLocaleDateString("en-CA");
         const readableDate = new Date(order.createdAt).toLocaleDateString("en-LK", {
@@ -76,464 +99,344 @@ export default function OrdersPage() {
         const customerName = (order.customerName || "").toLowerCase();
         const phoneNumber = (order.phoneNumber || "").toLowerCase();
 
-        return (
+        const matchesSearch = !search || (
           invoiceId.toLowerCase().includes(lowerSearch) ||
           formattedDate.includes(lowerSearch) ||
           readableDate.toLowerCase().includes(lowerSearch) ||
           customerName.includes(lowerSearch) ||
           phoneNumber.includes(lowerSearch)
         );
-      })
-    );
-  }, [search, orders]);
 
-  const calculateItemTotal = (item: OrderItem): number => {
-    if (item.free) return 0;
-    const baseTotal = item.price * item.quantity;
-    if (item.discount) {
-      if (item.discountType === "percentage") {
-        return baseTotal - (baseTotal * item.discount) / 100;
-      }
-      return baseTotal - item.discount * item.quantity;
+        const matchesPaymentType = filterPaymentType === "all" || 
+          order.paymentType.toLowerCase() === filterPaymentType.toLowerCase();
+
+        const orderDate = new Date(order.createdAt);
+        orderDate.setHours(0, 0, 0, 0);
+
+        let matchesDateRange = true;
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          if (orderDate < start) matchesDateRange = false;
+        }
+        if (endDate && matchesDateRange) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          if (orderDate > end) matchesDateRange = false;
+        }
+
+        return matchesSearch && matchesPaymentType && matchesDateRange;
+      })
+      .sort((a, b) => {
+        let valA: string | number = a[sortBy] as string | number || "";
+        let valB: string | number = b[sortBy] as string | number || "";
+        
+        if (sortBy === "createdAt") {
+          valA = new Date(a.createdAt).getTime();
+          valB = new Date(b.createdAt).getTime();
+        }
+
+        if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+        if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+  }, [search, filterPaymentType, startDate, endDate, orders, sortBy, sortOrder]);
+
+  const toggleSort = (key: keyof Order) => {
+    if (sortBy === key) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(key);
+      setSortOrder("asc");
     }
-    return baseTotal;
   };
 
-  const getPaymentBadgeColor = (paymentType: string) => {
+  const getPaymentIcon = (paymentType: string) => {
     switch (paymentType.toLowerCase()) {
-      case "cash":
-        return "bg-green-100 text-green-700";
-      case "card":
-        return "bg-blue-100 text-blue-700";
-      case "online":
-        return "bg-purple-100 text-purple-700";
-      default:
-        return "bg-slate-100 text-slate-700";
+      case "cash": return <FaMoneyBillWave size={12} />;
+      case "card": return <FaCreditCard size={12} />;
+      case "online": return <FaGlobe size={12} />;
+      default: return <FaBox size={12} />;
+    }
+  };
+
+  const getPaymentColor = (paymentType: string) => {
+    switch (paymentType.toLowerCase()) {
+      case "cash": return "bg-emerald-50 text-emerald-600 border-emerald-100";
+      case "card": return "bg-indigo-50 text-indigo-600 border-indigo-100";
+      case "online": return "bg-purple-50 text-purple-600 border-purple-100";
+      default: return "bg-slate-50 text-slate-600 border-slate-100";
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-black mb-2 tracking-tight" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
-            Order Management
+    <div className="p-4 sm:p-6 lg:p-10 space-y-10 min-h-screen bg-[#f8fafc]">
+      {/* 2026 Ultra-Modern Studio Header */}
+      <div className="relative mb-10 pt-0">
+        <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
+        
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+          <div className="flex items-start gap-12">
+            <div className="space-y-8">
+              {/* Futuristic Breadcrumb */}
+              <nav className="flex items-center gap-4">
+                <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
+                <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
+                <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">All Orders</span>
+              </nav>
+
+              <div className="space-y-2">
+                <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
+                   
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">All Orders</span>
           </h1>
-          <p className="text-slate-600 font-medium">View and manage all sales orders</p>
-        </div>
-        <div className="bg-white px-6 py-4 rounded-2xl shadow-md border border-slate-100 text-right">
-          <div className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            {filteredOrders.length}
+                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
+                  Real-time synchronization and analysis of your global transaction mesh.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Total Orders</div>
+
+          
         </div>
       </div>
 
-      {/* Search Section */}
-      <div className="bg-white rounded-[2rem] shadow-lg border border-slate-100 p-6 sm:p-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex-1 max-w-2xl">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 block ml-1">
-              Search Order Repository
-            </label>
-            <div className="relative group">
-              <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-indigo-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500">
+            <FaClipboardList size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Orders</p>
+            <p className="text-3xl font-black text-slate-900">{stats.totalOrders}</p>
+          </div>
+        </div>
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-emerald-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-emerald-50 rounded-2xl text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-500">
+            <FaMoneyBillWave size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Revenue</p>
+            <p className="text-3xl font-black text-slate-900">Rs. {stats.totalRevenue.toLocaleString()}</p>
+          </div>
+        </div>
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-amber-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-amber-50 rounded-2xl text-amber-600 group-hover:bg-amber-600 group-hover:text-white transition-colors duration-500">
+            <FaCalendarAlt size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Today&apos;s Orders</p>
+            <p className="text-3xl font-black text-slate-900">{stats.todaysOrders}</p>
+          </div>
+        </div>
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-purple-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-purple-50 rounded-2xl text-purple-600 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-500">
+            <FaMoneyBillWave size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Today Revenue</p>
+            <p className="text-3xl font-black text-slate-900">Rs. {stats.todaysRevenue.toLocaleString()}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Controls Section */}
+      <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100">
+        <div className="relative w-full lg:max-w-xl group">
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-500 transition-colors duration-300">
+            <FaSearch size={18} />
               </div>
               <input
                 type="text"
-                placeholder="Search by ID, Date, Customer or Phone..."
+            placeholder="Search by ID, Customer, or Phone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-14 pr-6 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-400 shadow-inner"
+            className="modern-input !pl-16 !py-4 !rounded-2xl text-lg font-medium bg-slate-50/50 focus:bg-white transition-all duration-300"
               />
-            </div>
           </div>
-          <div className="flex items-center gap-4 pt-6 md:pt-0">
-            <div className="h-12 w-[2px] bg-slate-100 hidden md:block"></div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Displaying</span>
-              <span className="text-xl font-black text-slate-900 tracking-tight">
-                {filteredOrders.length} <span className="text-slate-400 font-bold text-sm">Results</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Orders Table */}
-      {loading ? (
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-20 text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-[6px] border-indigo-500 border-t-transparent mb-6 shadow-inner"></div>
-          <p className="text-slate-500 text-xl font-bold tracking-tight">Fetching orders...</p>
-        </div>
-      ) : filteredOrders.length === 0 ? (
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 p-20 text-center">
-          <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <FaClipboardList size={40} className="text-slate-300" />
+        <div className="flex flex-wrap items-center gap-6 w-full lg:w-auto">
+          <div className="flex items-center gap-3 bg-slate-50/50 px-6 py-2 rounded-2xl border border-slate-100 flex-1 lg:flex-none">
+            <FaFilter size={14} className="text-slate-400" />
+                <select
+                  value={filterPaymentType}
+                  onChange={(e) => setFilterPaymentType(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-sm font-black text-slate-600 uppercase tracking-widest cursor-pointer min-w-[140px]"
+                >
+                  <option value="all">All Payments</option>
+              <option value="cash">Cash Only</option>
+              <option value="card">Card Only</option>
+              <option value="online">Online Only</option>
+                </select>
+              </div>
+
+          <div className="flex items-center gap-3 bg-slate-50/50 px-4 py-2 rounded-2xl border border-slate-100">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-[10px] font-black text-slate-600 uppercase tracking-widest cursor-pointer"
+                />
+            <span className="text-slate-300 text-xs">to</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-[10px] font-black text-slate-600 uppercase tracking-widest cursor-pointer"
+                />
+              </div>
+
+              {(filterPaymentType !== "all" || startDate || endDate) && (
+                <button
+                  onClick={() => {
+                    setFilterPaymentType("all");
+                    setStartDate("");
+                    setEndDate("");
+                  }}
+              className="p-4 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all duration-300"
+              title="Clear Filters"
+                >
+              <FaTimes size={16} />
+                </button>
+              )}
+            </div>
           </div>
-          <p className="text-slate-500 text-xl font-bold tracking-tight">No orders found</p>
-          <p className="text-slate-400 font-medium mt-2 max-w-xs mx-auto">
-            {search
-              ? "We couldn't find any orders matching your search criteria."
-              : "Start making sales in the POS section to see your orders here."}
-          </p>
+
+      {/* Orders Table Display */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-6">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="modern-card animate-pulse flex items-center justify-between rounded-[2rem] h-24 bg-white/50 border-slate-100">
+              <div className="flex gap-4 items-center ml-4">
+                <div className="w-12 h-12 bg-slate-100 rounded-xl"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-slate-100 rounded w-32"></div>
+                  <div className="h-3 bg-slate-100 rounded w-20"></div>
+            </div>
+          </div>
+              <div className="h-4 bg-slate-100 rounded w-24 mr-8"></div>
+        </div>
+          ))}
+        </div>
+      ) : filteredAndSortedOrders.length === 0 ? (
+        <div className="modern-card py-32 text-center rounded-[3rem] border-2 border-dashed border-slate-200 bg-transparent shadow-none">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-slate-50 text-slate-200 mb-8">
+            <FaClipboardList size={48} />
+          </div>
+          <h3 className="text-2xl font-black text-slate-900 mb-3">No transactions logged</h3>
+          <p className="text-slate-400 max-w-sm mx-auto font-medium">No order data satisfies the current filter parameters or the repository is empty.</p>
+          <button 
+            onClick={() => {setSearch(""); setFilterPaymentType("all"); setStartDate(""); setEndDate("");}}
+            className="mt-10 px-8 py-3 bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl hover:bg-indigo-600 transition-all duration-300"
+          >
+            Reset Data View
+          </button>
         </div>
       ) : (
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden">
+        <div className="modern-table shadow-2xl shadow-slate-200/50">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700">Invoice ID</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700">Date & Time</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700">Customer</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700 text-center">Items</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700">Payment</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700 text-right">Total</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-700 text-center">Actions</th>
+                <tr>
+                  <th className="px-8 py-6 cursor-pointer group" onClick={() => toggleSort("invoiceId")}>
+                    <div className="flex items-center gap-3">
+                      Invoice ID
+                      {sortBy === "invoiceId" && (sortOrder === "asc" ? <FaArrowUp size={10} className="text-indigo-400" /> : <FaArrowDown size={10} className="text-indigo-400" />)}
+                    </div>
+                  </th>
+                  <th className="px-8 py-6 cursor-pointer group" onClick={() => toggleSort("createdAt")}>
+                    <div className="flex items-center gap-3">
+                      Timestamp
+                      {sortBy === "createdAt" && (sortOrder === "asc" ? <FaArrowUp size={10} className="text-indigo-400" /> : <FaArrowDown size={10} className="text-indigo-400" />)}
+                    </div>
+                  </th>
+                  <th className="px-8 py-6">Customer Entity</th>
+                  <th className="px-8 py-6 text-center">Item Density</th>
+                  <th className="px-8 py-6 text-center">Payment Mesh</th>
+                  <th className="px-8 py-6 text-right cursor-pointer group" onClick={() => toggleSort("total")}>
+                    <div className="flex items-center justify-end gap-3">
+                      Total Value
+                      {sortBy === "total" && (sortOrder === "asc" ? <FaArrowUp size={10} className="text-indigo-400" /> : <FaArrowDown size={10} className="text-indigo-400" />)}
+                    </div>
+                  </th>
+                  <th className="px-8 py-6 text-center">Access</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => {
-                  const invoiceId = order.invoiceId;
-                  return (
-                    <tr key={order._id} className="hover:bg-slate-50/80 transition-colors group">
-                      <td className="px-6 py-5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-2 h-8 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                          <span className="font-black text-slate-900 tracking-tight">{invoiceId}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="space-y-1">
-                          <div className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                {filteredAndSortedOrders.map((order) => (
+                  <tr key={order._id} className="hover:bg-slate-50/80 transition-colors duration-300 group">
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span className="font-black text-slate-900 text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{order.invoiceId}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span className="text-slate-700 font-bold text-sm tracking-tight">
                             {new Date(order.createdAt).toLocaleDateString("en-LK", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                            })}
-                          </div>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            day: "2-digit", month: "short", year: "numeric"
+                          })}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
                             {new Date(order.createdAt).toLocaleTimeString("en-LK", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-800">
-                            {order.customerName || <span className="text-slate-300 font-medium">Walk-in Customer</span>}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-400 mt-0.5">
-                            {order.phoneNumber || "No Phone"}
+                            hour: "2-digit", minute: "2-digit"
+                          })}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-5 text-center">
-                        <span className="inline-flex items-center justify-center px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-wider border border-indigo-100 shadow-sm">
-                          {order.items.length} {order.items.length === 1 ? "Item" : "Items"}
+                    <td className="px-8 py-6">
+                      <div className="flex flex-col">
+                        <span className="font-black text-slate-900 text-sm uppercase tracking-wider">
+                          {order.customerName || "Walk-in Customer"}
                         </span>
-                      </td>
-                      <td className="px-6 py-5">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border border-transparent ${getPaymentBadgeColor(order.paymentType)}`}>
-                          {order.paymentType}
+                        <span className="text-[10px] text-slate-400 font-bold tracking-widest">
+                          {order.phoneNumber || "No contact"}
                         </span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className="inline-flex items-center justify-center px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-100 shadow-sm">
+                        {order.items.length} Units
+                      </span>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getPaymentColor(order.paymentType)}`}>
+                        {getPaymentIcon(order.paymentType)}
+                        {order.paymentType}
+                      </div>
                       </td>
-                      <td className="px-6 py-5 text-right">
-                        <div className="text-base font-black text-slate-900 tracking-tight">
-                          Rs.{order.total.toFixed(2)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-5">
+                    <td className="px-8 py-6 text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="font-black text-slate-900 text-lg tracking-tighter">Rs. {order.total.toLocaleString()}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6">
                         <div className="flex justify-center">
                           <Link
                             href={`/admin/orders/${order.invoiceId}`}
-                            className="px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] hover:border-indigo-500 hover:text-indigo-600 hover:shadow-lg transition-all active:scale-95 flex items-center gap-2"
-                            title="View Details"
-                          >
-                            <FaClipboardList size={14} />
-                            View Record
+                          className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-600 hover:shadow-xl transition-all duration-300 active:scale-95 group/btn"
+                        >
+                          <span>Open Invoice</span>
+                          <FaArrowRight size={10} className="group-hover/btn:translate-x-1 transition-transform" />
                           </Link>
                         </div>
                       </td>
                     </tr>
-                  );
-                })}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
-
-      {/* Order Details Modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 flex items-center justify-center bg-slate-900/70 backdrop-blur-md z-50 p-2 sm:p-4 lg:p-8 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-5xl max-h-[96vh] overflow-hidden rounded-[2rem] shadow-2xl border border-slate-200 flex flex-col animate-in slide-in-from-bottom-8 duration-500">
-            {/* Header Section */}
-            <div className="bg-gradient-to-r from-indigo-700 via-purple-700 to-indigo-700 p-6 sm:p-8 relative overflow-hidden">
-              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent"></div>
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-5">
-                  <div className="w-14 h-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-inner border border-white/30 text-white">
-                    <FaClipboardList size={28} />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight leading-none">
-                      Order Details
-                    </h2>
-                    <p className="text-indigo-100 text-sm mt-1.5 font-medium opacity-90">
-                      Invoice: <span className="font-bold">{selectedOrder.invoiceId}</span>
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedOrder(null)}
-                  className="w-11 h-11 bg-white/10 hover:bg-white/25 rounded-xl flex items-center justify-center transition-all duration-300 hover:rotate-90 group border border-white/20"
-                >
-                  <svg className="w-6 h-6 text-white group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            {/* Main Body - Two Column */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar bg-slate-50/30">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
-                
-                {/* Left Column: Information Cards */}
-                <div className="lg:col-span-2 space-y-6 lg:space-y-8">
-                  
-                  {/* Info Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Customer & Contact Info */}
-                    <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-bold">
-                          <FaBox size={18} />
-                        </div>
-                        <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">Customer Details</h3>
-                      </div>
-                      
-                      <div className="space-y-5">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Full Name</span>
-                          <p className="text-slate-900 font-bold text-lg">{selectedOrder.customerName || "Walk-in Customer"}</p>
-                        </div>
-                        <div className="flex flex-col pt-4 border-t border-slate-50">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Contact Phone</span>
-                          <p className="text-slate-900 font-bold text-lg">{selectedOrder.phoneNumber || "No phone provided"}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Transaction Details */}
-                    <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center font-bold">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">Payment Info</h3>
-                      </div>
-                      
-                      <div className="space-y-5">
-                        <div className="flex justify-between items-end">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Method</span>
-                            <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${getPaymentBadgeColor(selectedOrder.paymentType)}`}>
-                              {selectedOrder.paymentType}
-                            </span>
-                          </div>
-                          <div className="flex flex-col text-right">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Sale Date</span>
-                            <p className="text-slate-900 font-bold">
-                              {new Date(selectedOrder.createdAt).toLocaleDateString("en-LK", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="pt-4 border-t border-slate-50 flex justify-between items-center">
-                          <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-1">Transaction ID</span>
-                            <p className="text-slate-500 font-mono text-[10px]">{selectedOrder._id}</p>
-                          </div>
-                          <span className="px-2 py-1 bg-emerald-500 text-white text-[9px] font-black uppercase rounded tracking-widest">Successful</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Order Items Table Style */}
-                  <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                      <h3 className="text-base font-black text-slate-800 uppercase tracking-wider">Line Items</h3>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{selectedOrder.items.length} items total</span>
-                    </div>
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-collapse">
-                        <thead>
-                          <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100">
-                            <th className="px-6 py-4">Description</th>
-                            <th className="px-6 py-4 text-center">Qty</th>
-                            <th className="px-6 py-4 text-right">Unit Price</th>
-                            <th className="px-6 py-4 text-right">Subtotal</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                          {selectedOrder.items.map((item, index) => (
-                            <tr key={index} className="group hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4">
-                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-900 leading-none mb-1 group-hover:text-indigo-600 transition-colors">{item.name}</span>
-                                  <div className="flex gap-2">
-                                    {item.free && (
-                                      <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">Free</span>
-                                    )}
-                                    {item.discount && (
-                                      <span className="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded">
-                                        Disc: {item.discount}{item.discountType === "percentage" ? "%" : " Rs."}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-center">
-                                <span className="text-sm font-bold text-slate-600">x{item.quantity}</span>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <span className="text-sm font-bold text-slate-600">Rs.{item.price.toFixed(2)}</span>
-                              </td>
-                              <td className="px-6 py-4 text-right">
-                                <span className="text-sm font-black text-slate-900">Rs.{calculateItemTotal(item).toFixed(2)}</span>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Financial Summary */}
-                <div className="lg:col-span-1 space-y-6">
-                  <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group h-full flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-500/10 rounded-full -mr-24 -mt-24 blur-3xl group-hover:bg-indigo-500/20 transition-all duration-500"></div>
-                    
-                    <div className="relative">
-                      <div className="mb-10">
-                        <h3 className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] mb-8">Financial Summary</h3>
-                        
-                        <div className="space-y-5">
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Raw Subtotal</span>
-                            <span className="text-sm font-black text-white">
-                              Rs.{selectedOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-amber-400">
-                            <span className="text-xs font-bold uppercase tracking-widest">Applied Savings</span>
-                            <span className="text-sm font-black">
-                              -Rs.{selectedOrder.items.reduce((sum, item) => {
-                                const base = item.price * item.quantity;
-                                return sum + (base - calculateItemTotal(item));
-                              }, 0).toFixed(2)}
-                            </span>
-                          </div>
-                          
-                          {selectedOrder.paymentType.toLowerCase() === "cash" && (
-                            <div className="pt-5 mt-5 border-t border-white/5 space-y-4">
-                              <div className="flex justify-between items-center">
-                                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Received</span>
-                                <span className="text-sm font-black text-white">Rs.{selectedOrder.cashGiven?.toFixed(2)}</span>
-                              </div>
-                              <div className="flex justify-between items-center text-emerald-400">
-                                <span className="text-xs font-bold uppercase tracking-widest">Change</span>
-                                <span className="text-sm font-black">Rs.{selectedOrder.balance?.toFixed(2)}</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="relative pt-8 border-t border-white/10 mt-auto">
-                      <span className="text-indigo-300 text-[10px] font-black uppercase tracking-[0.2em] block mb-3 text-center">Final Amount Paid</span>
-                      <div className="flex items-baseline justify-center gap-2">
-                        <span className="text-2xl opacity-40 font-black">Rs.</span>
-                        <span className="text-5xl font-black tracking-tighter text-white">
-                          {selectedOrder.total.toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Receipt Footer Info */}
-                  <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Store Verification</p>
-                    <div className="flex justify-center mb-3">
-                      <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center border border-emerald-100">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    </div>
-                    <p className="text-slate-900 font-bold text-xs">Digitally Signed Transaction</p>
-                    <p className="text-slate-400 font-medium text-[10px] mt-1">Ready for audit & reporting</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Action Footer */}
-            <div className="p-6 sm:p-8 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-4 items-center">
-              <button
-                onClick={() => setSelectedOrder(null)}
-                className="w-full sm:flex-1 px-8 py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all active:scale-95"
-              >
-                Close Record
-              </button>
-              
-              <button
-                onClick={() => window.print()}
-                className="w-full sm:flex-1 px-8 py-4 bg-white border-2 border-slate-200 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all hover:border-indigo-600 hover:text-indigo-600 flex items-center justify-center gap-3 active:scale-95 shadow-sm hover:shadow-md"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                </svg>
-                Print Invoice
-              </button>
-
-              <button
-                className="w-full sm:flex-[1.5] px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download PDF
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+  );
+}
+
+export default function ProtectedOrdersPage() {
+  return (
+    <WithPermission required="orders:view">
+      <OrdersPage />
+    </WithPermission>
   );
 }
