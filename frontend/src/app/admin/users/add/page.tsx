@@ -145,9 +145,9 @@ function AddUserForm() {
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
           <div className="flex items-start gap-12">
-            <div className="space-y-8">
+            <div className="space-y-4 lg:space-y-8">
               {/* Futuristic Breadcrumb */}
-              <nav className="flex items-center gap-4">
+              <nav className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
                 <Link href="/admin/users" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">All Users</Link>
@@ -156,10 +156,10 @@ function AddUserForm() {
               </nav>
 
               <div className="space-y-2">
-                <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
+                <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New User</span>
                 </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
+                <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Architecting secure access credentials for your administrative ecosystem.
                 </p>
               </div>
@@ -168,9 +168,9 @@ function AddUserForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Main Configuration Area */}
-        <div className="xl:col-span-8">
+        <div className="lg:col-span-8">
           <form onSubmit={handleSubmit} className="space-y-10">
             
             {/* Identity & Personal Information */}
@@ -421,7 +421,7 @@ function AddUserForm() {
         </div>
 
         {/* Dynamic Sidebar: Preview & Security */}
-        <div className="xl:col-span-4">
+        <div className="lg:col-span-4">
           <div className="sticky top-0 space-y-10">
             {/* User Preview Card */}
             <div className="bg-white rounded-[3rem] p-0 overflow-hidden border border-slate-200 shadow-2xl group transition-all duration-500 hover:-translate-y-2 ring-1 ring-slate-200/50 relative">

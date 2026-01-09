@@ -201,32 +201,32 @@ function ProductsPage() {
       <div className="relative mb-10 pt-0">
         <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
         
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-12">
           <div className="flex items-start gap-12">
-            <div className="space-y-8">
+            <div className="space-y-4 lg:space-y-8">
               {/* Futuristic Breadcrumb */}
-              <nav className="flex items-center gap-4">
+              <nav className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">All Products</span>
               </nav>
 
               <div className="space-y-2">
-                <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
+                <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                    
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">All Products</span>
                 </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
+                <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Managing and optimizing your high-performance retail inventory.
                 </p>
               </div>
-        </div>
+            </div>
           </div>
 
-          <div className="flex flex-col items-end gap-6">
+          <div className="flex flex-col items-start lg:items-end gap-6">
           <Link
             href="/admin/products/add"
-              className="flex items-center gap-3 mr-8 group bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              className="flex items-center gap-3 group bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 lg:mr-8"
             >
               <div className="w-8 h-8 bg-indigo-600 text-white rounded-xl flex items-center justify-center group-hover:rotate-90 transition-transform duration-500">
                 <FaPlus size={14} />

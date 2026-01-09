@@ -175,29 +175,27 @@ function OrdersPage() {
       <div className="relative mb-10 pt-0">
         <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
         
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 lg:gap-12">
           <div className="flex items-start gap-12">
-            <div className="space-y-8">
+            <div className="space-y-4 lg:space-y-8">
               {/* Futuristic Breadcrumb */}
-              <nav className="flex items-center gap-4">
+              <nav className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
                 <span className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em]">All Orders</span>
               </nav>
 
               <div className="space-y-2">
-                <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
+                <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                    
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">All Orders</span>
-          </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
+                </h1>
+                <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Real-time synchronization and analysis of your global transaction mesh.
                 </p>
               </div>
             </div>
           </div>
-
-          
         </div>
       </div>
 
