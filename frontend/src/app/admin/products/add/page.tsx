@@ -6,7 +6,8 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { 
   FaTag, FaBarcode, FaImage, 
-  FaCubes, FaShieldAlt, FaRocket
+  FaCubes, FaShieldAlt, FaRocket,
+  FaLayerGroup, FaMoneyBillWave, FaBoxOpen, FaRulerCombined, FaWineBottle
 } from "react-icons/fa";
 import WithPermission from "@/components/WithPermission";
 
@@ -26,6 +27,10 @@ function AddProductPageContent() {
     size: "",
     packaging: "",
   });
+
+  const getCategoryGradient = (color: string) => {
+    return `from-[${color}]/20 via-[${color}]/10 to-transparent`;
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -78,17 +83,13 @@ function AddProductPageContent() {
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 min-h-screen bg-[#f8fafc]">
       {/* 2026 Ultra-Modern Studio Header */}
       <div className="relative mb-10 pt-0">
-        {/* Ambient background architectural glow */}
         <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
         
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
           <div className="flex items-start gap-12">
-            
-      
-
-            <div className="space-y-8">
+            <div className="space-y-4 lg:space-y-8">
               {/* Futuristic Breadcrumb */}
-              <nav className="flex items-center gap-4">
+              <nav className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <Link href="/admin" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">Overview</Link>
                 <div className="w-1.5 h-1.5 bg-indigo-500/20 rounded-full" />
                 <Link href="/admin/products" className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] hover:text-indigo-500 transition-colors">All Products</Link>
@@ -97,29 +98,21 @@ function AddProductPageContent() {
               </nav>
 
               <div className="space-y-2">
-                <h1 className="text-7xl md:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic">
-               
+                <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New Product</span>
                 </h1>
-                <p className="text-slate-400 font-medium text-xl md:text-2xl leading-relaxed">
+                <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Architecting next-generation SKU metadata for your global retail ecosystem.
                 </p>
               </div>
             </div>
           </div>
-
-        
-          <div className="flex flex-col items-end gap-6">
-          
-            
-            
-          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
         {/* Main Configuration Area */}
-        <div className="xl:col-span-8">
+        <div className="lg:col-span-8">
           <form onSubmit={handleSubmit} className="space-y-10">
             
             {/* Identity & Branding */}
@@ -150,13 +143,18 @@ function AddProductPageContent() {
                 </div>
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Market Category</label>
-                  <input
-                    name="category"
-                    value={formData.category}
-                    onChange={handleInputChange}
-                    placeholder="e.g. Beverages"
-                    className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
-                  />
+                  <div className="relative">
+                    <input
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      placeholder="e.g. Beverages"
+                      className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
+                    />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300">
+                      <FaLayerGroup size={16} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -221,6 +219,9 @@ function AddProductPageContent() {
                       required
                       className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-900 font-black text-2xl tracking-tighter"
                     />
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-200 pointer-events-none">
+                      <FaMoneyBillWave size={20} />
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-3">
@@ -236,7 +237,10 @@ function AddProductPageContent() {
                       required
                       className="w-full px-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-900 font-black text-2xl tracking-tighter"
                     />
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 font-bold uppercase text-[10px] tracking-widest">Units</div>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      <span className="text-slate-300 font-bold uppercase text-[10px] tracking-widest">Units</span>
+                      <FaBoxOpen size={18} className="text-slate-200" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -258,8 +262,9 @@ function AddProductPageContent() {
                       <option value="750ml">750ml Premium</option>
                       <option value="1L">1 Litre Elite</option>
                     </select>
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-3">
+                      <FaRulerCombined size={14} className="text-slate-300" />
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                     </div>
                   </div>
                 </div>
@@ -278,8 +283,9 @@ function AddProductPageContent() {
                       <option value="Bottle">Glass Bottle</option>
                       <option value="Box">Bulk Carton</option>
                     </select>
-                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
+                    <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-3">
+                      <FaWineBottle size={14} className="text-slate-300" />
+                      <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
                     </div>
                   </div>
                 </div>
@@ -307,7 +313,7 @@ function AddProductPageContent() {
                 ) : (
                   <>
                     <FaRocket size={18} />
-                    <span>Add Product</span>
+                    <span>Deploy Product</span>
                   </>
                 )}
               </button>
@@ -316,7 +322,7 @@ function AddProductPageContent() {
         </div>
 
         {/* Dynamic Sidebar: Preview & Security */}
-        <div className="xl:col-span-4">
+        <div className="lg:col-span-4">
           <div className="sticky top-0 space-y-10">
             {/* Futuristic Product Card Preview */}
             <div className="bg-white rounded-[3rem] p-0 overflow-hidden border border-slate-200 shadow-2xl group transition-all duration-500 hover:-translate-y-2 ring-1 ring-slate-200/50 relative">
@@ -331,18 +337,19 @@ function AddProductPageContent() {
               <div className="h-64 bg-slate-50 flex items-center justify-center relative overflow-hidden">
                 {/* Dynamic Background Mesh */}
                 <div 
-                  className="absolute inset-0 opacity-30 transition-opacity duration-700" 
+                  className="absolute inset-0 opacity-40 transition-all duration-700" 
                   style={{ background: `radial-gradient(circle at 50% 50%, ${formData.categoryColor} 0%, transparent 70%)` }} 
                 />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03] pointer-events-none" />
                 
                 <div className="relative z-10 flex flex-col items-center gap-4">
-                  <div className="w-24 h-24 bg-white rounded-[2rem] shadow-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500">
-                    <FaImage size={40} className="text-slate-200" />
+                  <div className="w-28 h-28 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center group-hover:scale-110 transition-transform duration-500 border-8 border-white ring-1 ring-slate-200">
+                    <FaImage size={48} className="text-slate-200" />
                   </div>
-                  <div className="px-3 py-1 bg-white/80 backdrop-blur-md rounded-xl border border-white shadow-sm ring-1 ring-slate-100">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: formData.categoryColor }}></div>
-                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{formData.category || "General SKU"}</span>
+                  <div className="px-4 py-2 bg-white/90 backdrop-blur-xl rounded-2xl border border-white shadow-xl ring-1 ring-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-2.5 h-2.5 rounded-full shadow-inner animate-pulse" style={{ backgroundColor: formData.categoryColor }}></div>
+                      <span className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em]">{formData.category || "General SKU"}</span>
                     </div>
                   </div>
                 </div>
@@ -361,60 +368,102 @@ function AddProductPageContent() {
               <div className="p-10 space-y-10 bg-white relative">
                 <div>
                   <h3 className="text-3xl font-black text-slate-900 tracking-tighter line-clamp-1 mb-2 group-hover:text-indigo-600 transition-colors">
-                    {formData.name || "Untitled Product"}
+                    {formData.name || "Untitled Asset"}
                   </h3>
-                  <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                  <div className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase tracking-widest bg-slate-50 w-fit px-3 py-1.5 rounded-lg border border-slate-100">
                     <FaCubes size={12} className="text-indigo-500" />
                     {formData.size || "---"} <span className="opacity-30">•</span> {formData.packaging || "---"}
                   </div>
                 </div>
 
-                <div className="flex items-end justify-between pt-8 border-t border-slate-100">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Pricing Strategy</p>
-                    <p className="text-4xl font-black text-slate-900 tracking-tighter">
-                      <span className="text-base font-bold text-slate-400 mr-1.5">Rs.</span>
-                      {formData.price.toLocaleString()}
-                    </p>
+                <div className="space-y-8 pt-8 border-t border-slate-100">
+                  <div className="flex items-end justify-between">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Pricing Strategy</p>
+                      <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                        <span className="text-base font-bold text-slate-400 mr-1.5">Rs.</span>
+                        {formData.price.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right space-y-1">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Inventory</p>
+                      <p className={`text-2xl font-black ${
+                        formData.stock > 10 ? 'text-emerald-600' : 'text-rose-600'
+                      }`}>
+                        {formData.stock} <span className="text-xs font-black uppercase ml-1 opacity-40">Units</span>
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right space-y-1">
-                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Inventory</p>
-                    <p className={`text-2xl font-black ${
-                      formData.stock > 10 ? 'text-emerald-600' : 'text-rose-600'
-                    }`}>
-                      {formData.stock} <span className="text-xs font-black uppercase ml-1 opacity-40">Units</span>
-                    </p>
+
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Asset Integrity</p>
+                    <div className="flex gap-2">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 transition-all duration-1000" 
+                          style={{ width: formData.name ? '100%' : '20%' }}
+                        />
+                      </div>
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-500 transition-all duration-1000" 
+                          style={{ width: formData.price > 0 ? '100%' : '0%' }}
+                        />
+                      </div>
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-purple-500 transition-all duration-1000" 
+                          style={{ width: formData.size ? '100%' : '0%' }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Deployment Security Card */}
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group border border-slate-800">
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-indigo-500/20 transition-all duration-700" />
-              <div className="flex items-center gap-4 mb-8">
-                <div className="p-3 bg-white/5 rounded-2xl text-indigo-400 border border-white/10 shadow-inner">
-                  <FaShieldAlt size={20} />
+            <div className="bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group border border-slate-800">
+              <div className="absolute -right-20 -top-20 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] group-hover:bg-indigo-500/20 transition-all duration-700" />
+              <div className="absolute -left-20 -bottom-20 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] group-hover:bg-emerald-500/20 transition-all duration-700" />
+              
+              <div className="flex items-center gap-6 mb-10 relative">
+                <div className="p-4 bg-white/5 rounded-2xl text-emerald-400 border border-white/10 shadow-inner group-hover:scale-110 transition-transform duration-500">
+                  <FaShieldAlt size={24} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-white uppercase tracking-widest">Deployment Guard</h4>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">SKU Validation Active</p>
+                  <h4 className="text-sm font-black text-white uppercase tracking-[0.3em]">Deployment Guard</h4>
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest mt-1">SKU Validation v2.6</p>
                 </div>
               </div>
-              <ul className="space-y-4 text-[11px] text-slate-400 font-medium leading-relaxed">
-                <li className="flex gap-3">
-                  <span className="text-indigo-500 font-black">01.</span>
-                  Automated SKU generation and POS node synchronization.
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-indigo-500 font-black">02.</span>
-                  Inventory locking until successful database commitment.
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-indigo-500 font-black">03.</span>
-                  Integrated stock health monitoring with alert threshold (10 units).
-                </li>
-              </ul>
+
+              <div className="space-y-6 relative">
+                {[
+                  { id: "01", text: "Automated SKU generation and POS node synchronization." },
+                  { id: "02", text: "Inventory locking until successful database commitment." },
+                  { id: "03", text: "Integrated stock health monitoring with alert threshold (10 units)." }
+                ].map((item) => (
+                  <div key={item.id} className="flex gap-4 group/item">
+                    <span className="text-emerald-500 font-black text-xs pt-0.5 group-hover/item:scale-125 transition-transform">{item.id}.</span>
+                    <p className="text-[12px] text-slate-400 font-medium leading-relaxed group-hover/item:text-slate-300 transition-colors">
+                      {item.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-10 pt-10 border-t border-white/5 relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map((i) => (
+                      <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-800 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Registry Ready</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
