@@ -282,7 +282,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
       <div className="w-full mx-auto px-1 sm:px-2 lg:px-3 py-2 sm:py-3 lg:py-4">
         {/* White Background Container */}
         <div className="bg-white rounded-2xl shadow-lg border border-slate-200/60 overflow-hidden">
