@@ -188,7 +188,7 @@ function AllUsersPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-10 space-y-10 min-h-screen bg-[#f8fafc]">
+    <div className="p-4 sm:p-6 lg:p-10 space-y-10 bg-[#f8fafc]">
       {/* 2026 Ultra-Modern Studio Header */}
       <div className="relative mb-10 pt-0">
         <div className="absolute top-0 right-0 w-[60%] h-[600px] bg-gradient-to-bl from-indigo-500/[0.03] via-purple-500/[0.02] to-transparent blur-[120px] -z-10 pointer-events-none" />
