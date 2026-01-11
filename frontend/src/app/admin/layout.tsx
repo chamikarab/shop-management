@@ -12,20 +12,33 @@ import {
   FaListUl,
   FaShoppingCart,
   FaCashRegister,
+  FaHome,
+  FaChartPie,
+  FaCog,
+  FaUsers,
+  FaBeer,
+  FaPlus,
 } from "react-icons/fa";
 import "./styles/admin.css";
 
 type User = {
+  name?: string;
+  role?: string;
   permissions: string[];
-  // Add other properties like id, email if needed
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -115,175 +128,187 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="admin-layout flex min-h-screen text-black bg-white">
+    <div className={`admin-layout flex h-screen overflow-hidden ${collapsed ? "sidebar-collapsed" : ""} ${mobileOpen ? "mobile-sidebar-open" : ""}`}>
+      {/* Mobile Toggle Button */}
+      <button
+        onClick={() => setMobileOpen(!mobileOpen)}
+        className="fixed top-6 left-6 z-[100] p-3 bg-slate-900 text-white rounded-xl lg:hidden shadow-xl border border-slate-800"
+      >
+        <FaBars size={20} />
+      </button>
+
+      {/* Sidebar Overlay */}
+      {mobileOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
       <aside
-        className={`bg-gray-900 text-white p-6 flex flex-col justify-between transition-all duration-300 ${
-          collapsed ? "w-20" : "w-72"
-        }`}
+        className={`text-white flex flex-col justify-between transition-all duration-500 ease-in-out z-50 h-screen sticky top-0 ${
+          collapsed ? "w-24" : "w-80"
+        } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
-        <div className="space-y-4 mt-2">
-          <div className="flex items-center justify-between mb-8">
-            {!collapsed && (
-              <div>
-                <h2 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  🍺 Beer Shop POS
-                </h2>
-                <p className="text-xs text-gray-400 mt-1">Management System</p>
+        <div className="flex flex-col h-full">
+          {/* Brand Area */}
+          <div className="sidebar-brand">
+            <div className="flex items-center gap-4">
+              <div className="sidebar-brand-icon">
+                <FaBeer />
               </div>
-            )}
+              {!collapsed && (
+                <div className="animate-in fade-in slide-in-from-left-4 duration-500 overflow-hidden">
+                  <h2 className="text-xl font-black tracking-tighter text-white whitespace-nowrap">
+                    BEER<span className="text-indigo-400">STUDIO</span>
+                  </h2>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 whitespace-nowrap">
+                    V2.6 Management
+                  </p>
+                </div>
+              )}
+            </div>
+            
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="text-white hover:text-purple-300 focus:outline-none p-2 rounded-lg hover:bg-white/10 transition-all"
-              title="Toggle Sidebar"
+              className="absolute -right-4 top-24 w-8 h-8 bg-indigo-600 text-white rounded-full flex items-center justify-center border-4 border-white hover:bg-indigo-500 hover:scale-110 transition-all shadow-xl z-[100] cursor-pointer"
+              title={collapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
-              <FaBars size={20} />
+              <div className={`transition-transform duration-500 ${collapsed ? "rotate-180" : ""}`}>
+                <FaBars size={10} />
+              </div>
             </button>
           </div>
 
-          <nav className="space-y-6">
-            <div>
-              <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
-                {!collapsed && "Sales"}
-              </span>
-              <div className="space-y-1">
-                <Link
-                  href="/admin/billing"
-                  className={`sidebar-link ${pathname === "/admin/billing" ? "active" : ""}`}
-                >
-                  <FaCashRegister />
-                  {!collapsed && <span>Point of Sale</span>}
-                </Link>
-              </div>
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto py-4 custom-scrollbar">
+            {/* Sales Section */}
+            <div className="sidebar-nav-section">
+              <span className="sidebar-nav-label">Core Operations</span>
+              <Link
+                href="/admin/billing"
+                className={`sidebar-link ${pathname === "/admin/billing" ? "active" : ""}`}
+              >
+                <FaCashRegister />
+                <span>Point of Sale</span>
+              </Link>
+              <Link
+                href="/admin"
+                className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
+              >
+                <FaChartPie />
+                <span>Overview</span>
+              </Link>
             </div>
 
-            <div>
-              <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
-                {!collapsed && "Dashboard"}
-              </span>
-              <div className="space-y-1">
-                <Link
-                  href="/admin"
-                  className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
-                >
-                  <FaBox />
-                  {!collapsed && <span>Overview</span>}
-                </Link>
-              </div>
-            </div>
-
+            {/* Inventory Section */}
             {user.permissions?.some((p) => p.startsWith("products:")) && (
-              <div>
-                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
-                  {!collapsed && "Products"}
-                </span>
-                <div className="space-y-1">
-                  {user.permissions.includes("products:add") && (
-                    <Link
-                      href="/admin/products/add"
-                      className={`sidebar-link ${
-                        pathname === "/admin/products/add" ? "active" : ""
-                      }`}
-                    >
-                      <FaUserPlus />
-                      {!collapsed && <span>Add Product</span>}
-                    </Link>
-                  )}
-                  {user.permissions.includes("products:view") && (
-                    <Link
-                      href="/admin/products"
-                      className={`sidebar-link ${
-                        pathname === "/admin/products" ? "active" : ""
-                      }`}
-                    >
-                      <FaListUl />
-                      {!collapsed && <span>All Products</span>}
-                    </Link>
-                  )}
-                  {user.permissions.includes("products:purchasing") && (
-                    <Link
-                      href="/admin/products/purchasing"
-                      className={`sidebar-link ${
-                        pathname === "/admin/products/purchasing" ? "active" : ""
-                      }`}
-                    >
-                      <FaShoppingCart />
-                      {!collapsed && <span>Purchasing</span>}
-                    </Link>
-                  )}
-                </div>
+              <div className="sidebar-nav-section">
+                <span className="sidebar-nav-label">Inventory Mesh</span>
+                {user.permissions.includes("products:view") && (
+                  <Link
+                    href="/admin/products"
+                    className={`sidebar-link ${pathname === "/admin/products" ? "active" : ""}`}
+                  >
+                    <FaBox />
+                    <span>All Assets</span>
+                  </Link>
+                )}
+                {user.permissions.includes("products:add") && (
+                  <Link
+                    href="/admin/products/add"
+                    className={`sidebar-link ${pathname === "/admin/products/add" ? "active" : ""}`}
+                  >
+                    <FaPlus />
+                    <span>Deploy SKU</span>
+                  </Link>
+                )}
+                {user.permissions.includes("products:purchasing") && (
+                  <Link
+                    href="/admin/products/purchasing"
+                    className={`sidebar-link ${pathname === "/admin/products/purchasing" ? "active" : ""}`}
+                  >
+                    <FaShoppingCart />
+                    <span>Procurement</span>
+                  </Link>
+                )}
               </div>
             )}
 
-            {user.permissions?.some((p) => p.startsWith("users:")) && (
-              <div>
-                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
-                  {!collapsed && "Users"}
-                </span>
-                <div className="space-y-1">
-                  {user.permissions.includes("users:add") && (
-                    <Link
-                      href="/admin/users/add"
-                      className={`sidebar-link ${
-                        pathname === "/admin/users/add" ? "active" : ""
-                      }`}
-                    >
-                      <FaUserPlus />
-                      {!collapsed && <span>Add User</span>}
-                    </Link>
-                  )}
-                  {user.permissions.includes("users:view") && (
-                    <Link
-                      href="/admin/users"
-                      className={`sidebar-link ${
-                        pathname === "/admin/users" ? "active" : ""
-                      }`}
-                    >
-                      <FaListUl />
-                      {!collapsed && <span>All Users</span>}
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-
+            {/* Orders Section */}
             {user.permissions?.some((p) => p.startsWith("orders:")) && (
-              <div>
-                <span className="text-gray-400 uppercase text-xs font-semibold tracking-wider pl-2 block mb-3">
-                  {!collapsed && "Orders"}
-                </span>
-                <div className="space-y-1">
-                  {user.permissions.includes("orders:view") && (
-                    <Link
-                      href="/admin/orders"
-                      className={`sidebar-link ${
-                        pathname === "/admin/orders" ? "active" : ""
-                      }`}
-                    >
-                      <FaClipboardList />
-                      {!collapsed && <span>All Orders</span>}
-                    </Link>
-                  )}
-                </div>
+              <div className="sidebar-nav-section">
+                <span className="sidebar-nav-label">Transaction Feed</span>
+                <Link
+                  href="/admin/orders"
+                  className={`sidebar-link ${pathname === "/admin/orders" ? "active" : ""}`}
+                >
+                  <FaClipboardList />
+                  <span>Order Matrix</span>
+                </Link>
+              </div>
+            )}
+
+            {/* Users Section */}
+            {user.permissions?.some((p) => p.startsWith("users:")) && (
+              <div className="sidebar-nav-section">
+                <span className="sidebar-nav-label">Access Control</span>
+                {user.permissions.includes("users:view") && (
+                  <Link
+                    href="/admin/users"
+                    className={`sidebar-link ${pathname === "/admin/users" ? "active" : ""}`}
+                  >
+                    <FaUsers />
+                    <span>Identity Hub</span>
+                  </Link>
+                )}
+                {user.permissions.includes("users:add") && (
+                  <Link
+                    href="/admin/users/add"
+                    className={`sidebar-link ${pathname === "/admin/users/add" ? "active" : ""}`}
+                  >
+                    <FaUserPlus />
+                    <span>Provision User</span>
+                  </Link>
+                )}
               </div>
             )}
           </nav>
-        </div>
 
-        {/* Logout */}
-        <div className="mt-auto pt-6 border-t border-gray-700">
-          <button
-            onClick={handleLogout}
-            className="sidebar-link w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-          >
-            <FaSignOutAlt />
-            {!collapsed && <span>Logout</span>}
-          </button>
+          {/* Footer Area */}
+          <div className="sidebar-footer">
+            {!collapsed && (
+              <div className="user-profile-mini mb-4 animate-in fade-in zoom-in duration-500 overflow-hidden">
+                <div className="user-avatar flex-shrink-0">
+                  {user.name?.[0] || "A"}
+                </div>
+                <div className="user-info overflow-hidden">
+                  <p className="text-xs font-black text-white truncate w-32 whitespace-nowrap">
+                    {user.name || "Administrator"}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    {user.role || "Super Admin"}
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <button
+              onClick={handleLogout}
+              className="logout-btn"
+            >
+              <FaSignOutAlt />
+              <span>Terminate Session</span>
+            </button>
+          </div>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-6 text-black bg-white">
-        {children}
+      <main className="flex-1 overflow-y-auto">
+        <div className="content-wrapper">
+          {children}
+        </div>
       </main>
     </div>
   );
