@@ -161,7 +161,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               {!collapsed && (
                 <div className="animate-in fade-in slide-in-from-left-4 duration-500 overflow-hidden">
                   <h2 className="text-xl font-black tracking-tighter text-white whitespace-nowrap">
-                    BEER<span className="text-indigo-400">STUDIO</span>
+                    SISILA<span className="text-indigo-400"> BEER SHOP</span>
                   </h2>
                   <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 whitespace-nowrap">
                     V2.6 Management
