@@ -206,7 +206,7 @@ function AllUsersPage() {
               <div className="space-y-2">
                 <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">All Users</span>
-                </h1>
+          </h1>
                 <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Managing access control and permissions for your administrative ecosystem.
                 </p>
