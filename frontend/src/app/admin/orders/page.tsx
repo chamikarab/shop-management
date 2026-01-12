@@ -189,7 +189,7 @@ function OrdersPage() {
                 <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                    
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">All Orders</span>
-                </h1>
+          </h1>
                 <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Real-time synchronization and analysis of your global transaction mesh.
                 </p>
@@ -367,19 +367,19 @@ function OrdersPage() {
                     <td className="px-8 py-6">
                       <div className="flex flex-col">
                         <span className="font-black text-slate-900 text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{order.invoiceId}</span>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
                     <td className="px-8 py-6">
                       <div className="flex flex-col">
                         <span className="text-slate-700 font-bold text-sm tracking-tight">
                             {new Date(order.createdAt).toLocaleDateString("en-LK", {
                             day: "2-digit", month: "short", year: "numeric"
-                          })}
+                            })}
                         </span>
                         <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">
                             {new Date(order.createdAt).toLocaleTimeString("en-LK", {
                             hour: "2-digit", minute: "2-digit"
-                          })}
+                            })}
                           </span>
                         </div>
                       </td>
@@ -407,14 +407,14 @@ function OrdersPage() {
                     <td className="px-8 py-6 text-right">
                       <div className="flex flex-col items-end">
                         <span className="font-black text-slate-900 text-lg tracking-tighter">Rs. {order.total.toLocaleString()}</span>
-                      </div>
-                    </td>
+                        </div>
+                      </td>
                     <td className="px-8 py-6">
                         <div className="flex justify-center">
                           <Link
                             href={`/admin/orders/${order.invoiceId}`}
                           className="flex items-center gap-2 px-6 py-3 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-indigo-500 hover:text-indigo-600 hover:shadow-xl transition-all duration-300 active:scale-95 group/btn"
-                        >
+                          >
                           <span>Open Invoice</span>
                           <FaArrowRight size={10} className="group-hover/btn:translate-x-1 transition-transform" />
                           </Link>
