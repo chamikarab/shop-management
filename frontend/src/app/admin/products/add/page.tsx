@@ -100,7 +100,7 @@ function AddProductPageContent() {
               <div className="space-y-2">
                 <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New Product</span>
-                </h1>
+            </h1>
                 <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Architecting next-generation SKU metadata for your global retail ecosystem.
                 </p>
@@ -118,53 +118,53 @@ function AddProductPageContent() {
             {/* Identity & Branding */}
             <div className="bg-white rounded-[2.5rem] p-8 sm:p-10 shadow-sm border border-slate-200 relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/30 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-indigo-50/50 transition-colors duration-700" />
-              
+            
               <div className="flex items-center gap-4 mb-10 relative">
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
                   <FaTag size={20} />
-                </div>
+              </div>
                 <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Identity & Branding</h2>
                   <p className="text-sm text-slate-400 font-medium">Core descriptive attributes for the system.</p>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Product Title <span className="text-rose-500">*</span></label>
-                  <input
-                    name="name"
+                <input
+                  name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="e.g. Premium Crafted Lager"
-                    required
+                  required
                     className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
-                  />
-                </div>
+                />
+              </div>
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Market Category</label>
                   <div className="relative">
-                    <input
-                      name="category"
+                <input
+                  name="category"
                       value={formData.category}
                       onChange={handleInputChange}
                       placeholder="e.g. Beverages"
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
-                    />
+                />
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300">
                       <FaLayerGroup size={16} />
                     </div>
                   </div>
-                </div>
               </div>
+            </div>
 
               <div className="mt-8 space-y-3 relative">
                 <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">POS Interface Color</label>
                 <div className="flex items-center gap-6 p-6 bg-slate-50/50 rounded-[2rem] border border-slate-100 border-dashed">
                   <div className="relative group">
-                    <input
-                      name="categoryColor"
-                      type="color"
+                <input
+                  name="categoryColor"
+                  type="color"
                       value={formData.categoryColor}
                       onChange={handleInputChange}
                       className="w-20 h-20 p-1.5 bg-white border-4 border-white rounded-[1.5rem] cursor-pointer shadow-xl ring-1 ring-slate-200 group-hover:scale-105 transition-transform"
@@ -173,8 +173,8 @@ function AddProductPageContent() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-3">
                       <span className="text-xs font-black text-slate-300">#</span>
-                      <input
-                        type="text"
+                <input
+                  type="text"
                         name="categoryColor"
                         value={formData.categoryColor}
                         onChange={handleInputChange}
@@ -201,24 +201,24 @@ function AddProductPageContent() {
                   <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Financials & Inventory</h2>
                   <p className="text-sm text-slate-400 font-medium">Price points and initial audit quantities.</p>
                 </div>
-              </div>
+            </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Unit Retail Price (LKR) *</label>
                   <div className="relative group">
                     <span className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-lg group-focus-within:text-indigo-500 transition-colors">Rs.</span>
-                    <input
-                      name="price"
-                      type="number"
-                      step="0.01"
-                      min="0"
+                  <input
+                    name="price"
+                    type="number"
+                    step="0.01"
+                    min="0"
                       value={formData.price || ""}
                       onChange={handleInputChange}
-                      placeholder="0.00"
-                      required
+                    placeholder="0.00"
+                    required
                       className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-900 font-black text-2xl tracking-tighter"
-                    />
+                  />
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-200 pointer-events-none">
                       <FaMoneyBillWave size={20} />
                     </div>
@@ -227,14 +227,14 @@ function AddProductPageContent() {
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Initial Stock Audit *</label>
                   <div className="relative">
-                    <input
-                      name="stock"
-                      type="number"
-                      min="0"
+                <input
+                  name="stock"
+                  type="number"
+                  min="0"
                       value={formData.stock || ""}
                       onChange={handleInputChange}
-                      placeholder="0"
-                      required
+                  placeholder="0"
+                  required
                       className="w-full px-6 py-5 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-900 font-black text-2xl tracking-tighter"
                     />
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -242,26 +242,26 @@ function AddProductPageContent() {
                       <FaBoxOpen size={18} className="text-slate-200" />
                     </div>
                   </div>
-                </div>
               </div>
+            </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 relative">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Volume Metric *</label>
                   <div className="relative">
-                    <select
-                      name="size"
+                  <select
+                    name="size"
                       value={formData.size}
                       onChange={handleInputChange}
-                      required
+                    required
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
-                    >
+                  >
                       <option value="">Select Calibration</option>
-                      <option value="330ml">330ml Standard</option>
-                      <option value="500ml">500ml Medium</option>
-                      <option value="750ml">750ml Premium</option>
+                    <option value="330ml">330ml Standard</option>
+                    <option value="500ml">500ml Medium</option>
+                    <option value="750ml">750ml Premium</option>
                       <option value="1L">1 Litre Elite</option>
-                    </select>
+                  </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-3">
                       <FaRulerCombined size={14} className="text-slate-300" />
                       <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
@@ -271,18 +271,18 @@ function AddProductPageContent() {
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Packaging Format *</label>
                   <div className="relative">
-                    <select
-                      name="packaging"
+                  <select
+                    name="packaging"
                       value={formData.packaging}
                       onChange={handleInputChange}
-                      required
+                    required
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
-                    >
+                  >
                       <option value="">Select Containment</option>
-                      <option value="Can">Aluminum Can</option>
-                      <option value="Bottle">Glass Bottle</option>
+                    <option value="Can">Aluminum Can</option>
+                    <option value="Bottle">Glass Bottle</option>
                       <option value="Box">Bulk Carton</option>
-                    </select>
+                  </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-3">
                       <FaWineBottle size={14} className="text-slate-300" />
                       <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
@@ -294,31 +294,31 @@ function AddProductPageContent() {
 
             {/* Final Action */}
             <div className="flex flex-col sm:flex-row gap-6 pt-4">
-              <Link
-                href="/admin/products"
+            <Link
+              href="/admin/products"
                 className="flex-1 px-8 py-5 bg-white border-2 border-slate-200 text-slate-400 font-black uppercase tracking-widest text-[14px] rounded-[2rem] transition-all hover:bg-slate-50 active:scale-95 text-center flex items-center justify-center"
-              >
+            >
                 Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={loading}
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
                 className="flex-[2] bg-slate-900 text-white font-black uppercase tracking-widest text-[14px] py-6 rounded-[2.5rem] hover:bg-indigo-600 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-xl shadow-slate-200"
-              >
-                {loading ? (
-                  <>
+            >
+              {loading ? (
+                <>
                     <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>Processing SKU...</span>
-                  </>
-                ) : (
-                  <>
+                </>
+              ) : (
+                <>
                     <FaRocket size={18} />
                     <span>Deploy Product</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
         </div>
 
         {/* Dynamic Sidebar: Preview & Security */}

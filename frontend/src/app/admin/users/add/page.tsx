@@ -158,7 +158,7 @@ function AddUserForm() {
               <div className="space-y-2">
                 <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-[-0.06em] leading-[0.85] italic break-words">
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient-x not-italic">Add New User</span>
-                </h1>
+        </h1>
                 <p className="text-slate-400 font-medium text-lg md:text-2xl leading-relaxed max-w-2xl">
                   Architecting secure access credentials for your administrative ecosystem.
                 </p>
@@ -181,7 +181,7 @@ function AddUserForm() {
                 <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center shadow-inner">
                   <FaUser size={20} />
                 </div>
-                <div>
+          <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Identity & Personal Information</h2>
                   <p className="text-sm text-slate-400 font-medium">Core user attributes and identification data.</p>
                 </div>
@@ -190,8 +190,8 @@ function AddUserForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative">
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Full Name <span className="text-rose-500">*</span></label>
-                  <input
-                    name="name"
+                <input
+                  name="name"
                     value={formData.name}
                     onChange={handleInputChange}
                     placeholder="e.g. John Doe"
@@ -207,9 +207,9 @@ function AddUserForm() {
                     value={formData.email}
                     onChange={handleInputChange}
                     placeholder="e.g. john.doe@example.com"
-                    required
+                  required
                     className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
-                  />
+                />
                 </div>
               </div>
 
@@ -237,30 +237,30 @@ function AddUserForm() {
                 <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Security & Authentication</h2>
                   <p className="text-sm text-slate-400 font-medium">Password credentials and access validation.</p>
-                </div>
-              </div>
+            </div>
+          </div>
 
               <div className="space-y-6 relative">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password <span className="text-rose-500">*</span></label>
-                    <button
-                      type="button"
+                  <button
+                    type="button"
                       onClick={generatePassword}
                       className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all duration-300 flex items-center gap-2"
-                    >
+                  >
                       <FaKey size={12} />
                       Generate
-                    </button>
-                  </div>
+                  </button>
+                </div>
                   <div className="relative">
-                    <input
-                      name="password"
+                <input
+                  name="password"
                       type={showPassword ? "text" : "password"}
                       value={formData.password}
                       onChange={handleInputChange}
                       placeholder="Enter secure password"
-                      required
+                  required
                       className="w-full px-6 pr-14 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
                     />
                     <button
@@ -272,17 +272,17 @@ function AddUserForm() {
                       {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
                     </button>
                   </div>
-                </div>
+              </div>
                 <div className="space-y-3">
                   <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Confirm Password <span className="text-rose-500">*</span></label>
                   <div className="relative">
-                    <input
-                      name="confirmPassword"
+                <input
+                  name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       placeholder="Re-enter password for verification"
-                      required
+                  required
                       className="w-full px-6 pr-14 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
                     />
                     <button
@@ -309,8 +309,8 @@ function AddUserForm() {
                 <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Role & Access Control</h2>
                   <p className="text-sm text-slate-400 font-medium">Define user role and system permissions.</p>
-                </div>
-              </div>
+            </div>
+          </div>
 
               <div className="space-y-8 relative">
                 <div className="space-y-3">
@@ -323,31 +323,31 @@ function AddUserForm() {
                       required
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
                     >
-                      <option value="">Select Role</option>
-                      <option value="admin">Admin</option>
+                <option value="">Select Role</option>
+                <option value="admin">Admin</option>
                       <option value="manager">Manager</option>
-                      <option value="cashier">Cashier</option>
-                    </select>
+                <option value="cashier">Cashier</option>
+              </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                    </div>
+            </div>
                   </div>
                   <p className="text-[10px] text-slate-400 font-bold leading-relaxed">
                     Select the role that best fits the user&apos;s responsibilities and access level.
                   </p>
-                </div>
+          </div>
 
                 <div className="space-y-4">
-                  <div>
+          <div>
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">System Permissions</label>
                     <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-1">
                       Toggle switches to grant or revoke specific access permissions.
-                    </p>
+            </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {Object.entries(permissions).map(([key, value]) => (
-                      <div
-                        key={key}
+              {Object.entries(permissions).map(([key, value]) => (
+                <div
+                  key={key}
                         onClick={() => handleToggle(key as PermissionKey)}
                         className={`group/perm flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
                           value
@@ -368,7 +368,7 @@ function AddUserForm() {
                               value ? "text-slate-900" : "text-slate-500"
                             }`}>
                               {key.split(":")[0]}
-                            </span>
+                  </span>
                             <p className={`text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-300 ${
                               value ? "text-indigo-500" : "text-slate-300"
                             }`}>
@@ -377,47 +377,47 @@ function AddUserForm() {
                           </div>
                         </div>
                         <label className="modern-switch scale-75 origin-right">
-                          <input
-                            type="checkbox"
-                            checked={value}
+                    <input
+                      type="checkbox"
+                      checked={value}
                             onChange={() => {}} // Controlled by parent div click
-                          />
-                          <span className="modern-slider"></span>
-                        </label>
-                      </div>
-                    ))}
+                    />
+                    <span className="modern-slider"></span>
+                  </label>
+                </div>
+              ))}
                   </div>
                 </div>
-              </div>
             </div>
+          </div>
 
             {/* Final Action */}
             <div className="flex flex-col sm:flex-row gap-6 pt-4">
-              <Link
-                href="/admin/users"
+            <Link
+              href="/admin/users"
                 className="flex-1 px-8 py-5 bg-white border-2 border-slate-200 text-slate-400 font-black uppercase tracking-widest text-[14px] rounded-[2rem] transition-all hover:bg-slate-50 active:scale-95 text-center flex items-center justify-center"
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit"
-                disabled={loading}
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={loading}
                 className="flex-[2] bg-slate-900 text-white font-black uppercase tracking-widest text-[14px] py-6 rounded-[2.5rem] hover:bg-indigo-600 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-xl shadow-slate-200"
-              >
-                {loading ? (
+            >
+              {loading ? (
                   <>
                     <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
                     <span>Creating User...</span>
                   </>
-                ) : (
+              ) : (
                   <>
                     <FaRocket size={18} />
                     <span>Create User</span>
                   </>
-                )}
-              </button>
-            </div>
-          </form>
+              )}
+            </button>
+          </div>
+        </form>
         </div>
 
         {/* Dynamic Sidebar: Preview & Security */}
