@@ -332,30 +332,30 @@ export default function BillingPage() {
                 {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
               </p>
             </div>
-          </div>
-
+              </div>
+                
           <div className="flex items-center justify-center lg:justify-end gap-2 sm:gap-3 w-full sm:w-auto">
-            {cart.length > 0 && (
-              <button
-                onClick={() => {
-                  cart.forEach((item) => {
-                    setProducts((prev) =>
-                      prev.map((p) =>
-                        p.id === item.id
-                          ? { ...p, stock: p.stock + item.quantity }
-                          : p
-                      )
-                    );
-                  });
-                  setCart([]);
-                  toast.success("Cart cleared");
-                }}
+                {cart.length > 0 && (
+                  <button
+                    onClick={() => {
+                      cart.forEach((item) => {
+                        setProducts((prev) =>
+                          prev.map((p) =>
+                            p.id === item.id
+                              ? { ...p, stock: p.stock + item.quantity }
+                              : p
+                          )
+                        );
+                      });
+                      setCart([]);
+                      toast.success("Cart cleared");
+                    }}
                 className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-white border border-red-100 rounded-2xl text-red-600 font-black text-[10px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 sm:gap-3 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-300 shadow-sm whitespace-nowrap"
-              >
+                  >
                 <FaTrash className="text-[10px] sm:text-xs" />
                 <span>Clear Cart</span>
-              </button>
-            )}
+                  </button>
+                )}
             <Link 
               href="/admin/orders" 
               className="flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 bg-white border border-slate-100 rounded-2xl text-slate-600 font-black text-[10px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 sm:gap-3 hover:border-indigo-600 hover:text-indigo-600 transition-all duration-300 shadow-sm whitespace-nowrap"
@@ -363,52 +363,52 @@ export default function BillingPage() {
               <FaHistory className="text-[10px] sm:text-xs" />
               <span>History</span>
             </Link>
-          </div>
+            </div>
         </div>
       </header>
 
       <div className="flex flex-col lg:flex-row gap-6 sm:gap-8">
-        {/* Products Section */}
+          {/* Products Section */}
         <div className="flex-1 space-y-4">
           {/* Modern Search & Filter */}
           <div className="modern-card p-4">
             <div className="flex flex-col md:flex-row items-stretch md:items-center gap-4">
               <div className="flex-1 relative group">
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                <input
-                  type="text"
+          <input
+            type="text"
                   placeholder="    Search products by name or SKU..."
                   className="modern-input pl-11"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-              </div>
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
                   className="px-6 font-bold text-slate-500 hover:text-slate-800 transition-colors"
-                >
-                  Clear
-                </button>
-              )}
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
-          </div>
 
           {/* Navigation Breadcrumbs for Categories */}
-          {(selectedCategory || selectedPackaging) && (
+            {(selectedCategory || selectedPackaging) && (
             <div className="flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar">
-              <button
-                onClick={handleBackToCategories}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-600 hover:border-indigo-500 hover:text-indigo-600 transition-all whitespace-nowrap shadow-sm"
-              >
-                <FaLayerGroup className="text-xs" />
-                Categories
-              </button>
-              {selectedCategory && (
-                <>
-                  <FaChevronRight className="text-[10px] text-slate-400 flex-shrink-0" />
                   <button
-                    onClick={handleBackToPackaging}
+                    onClick={handleBackToCategories}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-full text-sm font-bold text-slate-600 hover:border-indigo-500 hover:text-indigo-600 transition-all whitespace-nowrap shadow-sm"
+                  >
+                <FaLayerGroup className="text-xs" />
+                    Categories
+                  </button>
+                  {selectedCategory && (
+                    <>
+                  <FaChevronRight className="text-[10px] text-slate-400 flex-shrink-0" />
+                          <button
+                            onClick={handleBackToPackaging}
                     className={`flex items-center gap-2 px-4 py-2 border rounded-full text-sm font-bold transition-all whitespace-nowrap shadow-sm ${
                       !selectedPackaging 
                         ? "bg-indigo-600 border-indigo-600 text-white" 
@@ -416,8 +416,8 @@ export default function BillingPage() {
                     }`}
                   >
                     <FaBox className="text-xs" />
-                    {selectedCategory}
-                  </button>
+                            {selectedCategory}
+                          </button>
                 </>
               )}
               {selectedPackaging && (
@@ -427,10 +427,10 @@ export default function BillingPage() {
                     <FaWineBottle className="text-xs" />
                     {selectedPackaging}
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                    </>
+                  )}
+              </div>
+            )}
 
           {/* Dynamic Views */}
           <div className="min-h-[300px] sm:min-h-[400px]">
@@ -448,10 +448,10 @@ export default function BillingPage() {
                 ) : (
                   categories.map((category) => {
                     const categoryColor = categoryMap.get(category) || '#6366f1';
-                    return (
-                      <div
-                        key={category}
-                        onClick={() => handleCategoryClick(category)}
+                      return (
+                        <div
+                          key={category}
+                          onClick={() => handleCategoryClick(category)}
                         className="modern-card p-6 cursor-pointer group hover:border-slate-900 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] transition-all duration-500 overflow-hidden relative active:scale-95 bg-white"
                       >
                         <div 
@@ -459,18 +459,18 @@ export default function BillingPage() {
                           style={{ backgroundColor: categoryColor }}
                         ></div>
                         <div className="flex items-start justify-between mb-8">
-                          <div 
+                            <div 
                             className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg"
                             style={{ backgroundColor: categoryColor }}
-                          >
+                            >
                             <FaLayerGroup className="text-xl" />
                           </div>
                           <span className="text-xs font-black uppercase tracking-wider text-slate-400 group-hover:text-indigo-500 transition-colors">Explore</span>
                         </div>
                         <h3 className="text-xl font-black text-slate-900 mb-2">{category}</h3>
                         <p className="text-slate-500 text-sm font-medium">View packaging options for this category.</p>
-                      </div>
-                    );
+                        </div>
+                      );
                   })
                 )}
               </div>
@@ -494,12 +494,12 @@ export default function BillingPage() {
                   <p className="text-slate-500 text-sm font-medium">Return to category selection screen.</p>
                 </div>
 
-                {packagingOptions.map((packaging) => {
+                    {packagingOptions.map((packaging) => {
                   const categoryColor = categoryMap.get(selectedCategory || '') || '#6366f1';
-                  return (
-                    <div
-                      key={packaging}
-                      onClick={() => handlePackagingClick(packaging)}
+                      return (
+                        <div
+                          key={packaging}
+                          onClick={() => handlePackagingClick(packaging)}
                       className="modern-card p-6 cursor-pointer group hover:border-slate-900 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] transition-all duration-500 overflow-hidden relative active:scale-95 bg-white"
                     >
                       <div 
@@ -510,16 +510,16 @@ export default function BillingPage() {
                         <div 
                           className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg"
                           style={{ backgroundColor: categoryColor }}
-                        >
+                            >
                           <FaBox className="text-xl" />
                         </div>
                         <span className="text-xs font-black uppercase tracking-wider text-slate-400 group-hover:text-indigo-500 transition-colors">Select</span>
-                      </div>
+                            </div>
                       <h3 className="text-xl font-black text-slate-900 mb-2">{packaging}</h3>
                       <p className="text-slate-500 text-sm font-medium">View products in {packaging} packaging.</p>
-                    </div>
-                  );
-                })}
+                        </div>
+                      );
+                    })}
               </div>
             )}
 
@@ -534,7 +534,7 @@ export default function BillingPage() {
                   <div className="mb-6">
                     <div className="w-12 h-12 bg-slate-200 rounded-xl flex items-center justify-center mb-4 group-hover:bg-slate-900 group-hover:text-white transition-all duration-300">
                       <FaArrowLeft className="text-xl text-slate-600 group-hover:text-white" />
-                    </div>
+                </div>
                     <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-slate-600 transition-colors mb-1">Back to Packaging</h3>
                     <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase tracking-widest">
                       <span>Go Back</span>
@@ -543,7 +543,7 @@ export default function BillingPage() {
                   <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                     <span className="text-xs font-medium text-slate-500">Return to packaging selection</span>
                   </div>
-                </div>
+              </div>
 
                 {displayedProducts.map((product) => (
                   <div
@@ -565,7 +565,7 @@ export default function BillingPage() {
                         <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-wider">Low Stock: {product.stock}</span>
                       ) : (
                         <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-black uppercase tracking-wider">Stock: {product.stock}</span>
-                      )}
+                            )}
                     </div>
 
                     <div className="mb-6">
@@ -580,7 +580,7 @@ export default function BillingPage() {
                         <span>•</span>
                         <span>{product.packaging}</span>
                       </div>
-                    </div>
+                            </div>
 
                     <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
                       <div className="text-2xl font-black text-slate-900">
@@ -595,8 +595,8 @@ export default function BillingPage() {
                 ))}
               </div>
             )}
+      </div>
           </div>
-        </div>
 
         {/* Cart Sidebar */}
         <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0">
@@ -613,7 +613,7 @@ export default function BillingPage() {
                 </h2>
                 <div className="px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-black text-indigo-300 uppercase tracking-widest border border-white/10">
                   {cart.length} {cart.length === 1 ? 'Item' : 'Items'}
-                </div>
+                      </div>
               </div>
               <p className="text-slate-400 text-[11px] font-medium opacity-70 relative z-10 uppercase tracking-tight">Current Transaction</p>
             </div>
@@ -627,9 +627,9 @@ export default function BillingPage() {
                   </div>
                   <h3 className="text-slate-900 font-black text-base mb-1 uppercase tracking-tight">Empty Cart</h3>
                   <p className="text-slate-400 text-[11px] font-medium">Add products to begin.</p>
-                </div>
-              ) : (
-                cart.map((item) => (
+              </div>
+            ) : (
+              cart.map((item) => (
                   <div key={item.id} className="group bg-white rounded-2xl border border-slate-200/60 p-3 hover:border-indigo-400 transition-all duration-300 shadow-sm relative overflow-hidden">
                     {item.free && (
                       <div className="absolute top-0 right-0 px-2 py-0.5 bg-green-500 text-white text-[7px] font-black uppercase tracking-widest rounded-bl-lg shadow-sm z-10">
@@ -638,16 +638,16 @@ export default function BillingPage() {
                     )}
                     
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-slate-900 truncate text-sm group-hover:text-indigo-600 transition-colors">
-                          {item.name}
-                        </h4>
+                                {item.name}
+                              </h4>
                         <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-wider text-slate-400 mt-0.5">
                           <span className="bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">{item.size || 'Std'}</span>
                           <span className="text-indigo-500/60 font-bold">Rs.{item.price.toFixed(2)}</span>
-                        </div>
-                      </div>
-                      <button 
+                          </div>
+                  </div>
+                      <button
                         onClick={() => removeFromCart(item.id)}
                         className="w-7 h-7 rounded-lg bg-slate-50 text-slate-300 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all duration-300"
                       >
@@ -665,20 +665,20 @@ export default function BillingPage() {
                           <FaMinus className="text-[8px]" />
                         </button>
                         <span className="w-7 text-[11px] font-black text-slate-900 text-center">{item.quantity}</span>
-                        <button 
-                          onClick={() => increaseQty(item.id)}
+                      <button
+                        onClick={() => increaseQty(item.id)}
                           className="w-6 h-6 rounded-md bg-white shadow-sm flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all active:scale-90"
-                        >
+                      >
                           <FaPlus className="text-[8px]" />
-                        </button>
-                      </div>
+                      </button>
+                    </div>
 
                       {/* Compact Discount & Free Toggle */}
                       <div className="flex-1 flex items-center gap-1.5">
                         <div className="flex-1 flex items-center gap-1 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100">
-                          <input
-                            type="number"
-                            value={item.discount || ""}
+                      <input
+                        type="number"
+                        value={item.discount || ""}
                             onChange={(e) => updateCartItem(item.id, { discount: Number(e.target.value) || 0 })}
                             className="w-full bg-transparent border-none p-0 text-[10px] font-black text-slate-900 focus:ring-0 placeholder-slate-300"
                             placeholder="Disc"
@@ -705,7 +705,7 @@ export default function BillingPage() {
                         >
                           <span className="text-[7px] font-black uppercase">Free</span>
                         </button>
-                      </div>
+                    </div>
 
                       <div className="text-right shrink-0 min-w-[70px]">
                         <div className={`text-sm font-black tracking-tight ${item.free ? 'text-green-500 line-through opacity-50' : 'text-slate-900'}`}>
@@ -713,11 +713,11 @@ export default function BillingPage() {
                           {calculateItemTotal(item).toFixed(2)}
                         </div>
                       </div>
-                    </div>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
+          </div>
 
             {/* Slim Summary Footer */}
             <div className="p-4 bg-white border-t-2 border-slate-100 shrink-0 shadow-[0_-15px_30px_-10px_rgba(0,0,0,0.05)] relative z-20">
@@ -726,16 +726,16 @@ export default function BillingPage() {
                 <div className="space-y-1.5">
                   <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
                     <FaTags className="text-indigo-500 text-[8px]" />
-                    Bill Discount
+                  Bill Discount
                   </span>
                   <div className="relative flex items-center bg-slate-50 rounded-xl border border-slate-200 focus-within:border-indigo-400 transition-all p-1">
-                    <input
-                      type="number"
+                  <input
+                    type="number"
                       className="w-full bg-transparent border-none pl-2 pr-8 py-1.5 text-xs font-black text-slate-900 focus:ring-0 placeholder-slate-300"
                       placeholder="0.00"
-                      value={discount}
+                    value={discount}
                       onChange={(e) => setDiscount(e.target.value === "" ? "" : Number(e.target.value))}
-                    />
+                  />
                     <button
                       onClick={() => setIsPercentage(!isPercentage)}
                       className="absolute right-1 w-7 h-7 flex items-center justify-center bg-white shadow-sm rounded-lg text-[9px] font-black text-indigo-600 border border-slate-100 hover:bg-indigo-600 hover:text-white transition-all"
@@ -765,18 +765,18 @@ export default function BillingPage() {
                   <div className="flex items-baseline gap-1">
                     <span className="text-xs opacity-50 font-black">Rs.</span>
                     <span className="text-2xl font-black tracking-tighter tabular-nums">{grandTotal.toFixed(2)}</span>
-                  </div>
                 </div>
-                
-                <button
-                  disabled={cart.length === 0}
-                  onClick={() => setShowModal(true)}
+              </div>
+
+              <button
+                disabled={cart.length === 0}
+                onClick={() => setShowModal(true)}
                   className="w-16 h-16 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl shadow-xl shadow-indigo-600/20 flex flex-col items-center justify-center gap-1 group active:scale-95 transition-all disabled:opacity-50 disabled:grayscale"
-                >
+              >
                   <FaChevronRight className="text-xl group-hover:translate-x-1 transition-transform" />
                   <span className="text-[8px] font-black uppercase tracking-widest">Pay</span>
-                </button>
-              </div>
+              </button>
+          </div>
             </div>
           </div>
         </div>
