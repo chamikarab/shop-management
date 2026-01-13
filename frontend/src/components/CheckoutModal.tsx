@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   FaUser, FaPhone, FaWallet, FaCheck, FaTimes, 
   FaPrint, FaShoppingCart, FaCreditCard, FaGlobe,
@@ -50,6 +50,14 @@ export default function CheckoutModal({
 }: Props) {
   const [hoveredMethod, setHoveredMethod] = useState<string | null>(null);
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   const calculateItemTotal = (item: Item): number => {
     if (item.free) return 0;
     const baseTotal = item.price * item.quantity;
@@ -71,15 +79,35 @@ export default function CheckoutModal({
   ];
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-slate-900/90 backdrop-blur-xl z-[100] p-4 sm:p-6 animate-in fade-in duration-500">
-      <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[3rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.3)] border border-slate-200 flex flex-col animate-in zoom-in-95 duration-500 relative">
+    <>
+      {/* Backdrop Overlay - Full Screen Coverage */}
+      <div 
+        className="fixed inset-0 bg-slate-900/70 backdrop-blur-xl z-[99]"
+        onClick={onCancel}
+        style={{ 
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100vw',
+          height: '100vh'
+        }}
+      />
+      
+      {/* Modal Container */}
+      <div className="fixed inset-0 flex items-center justify-center z-[100] p-4 sm:p-6 pointer-events-none overflow-y-auto">
+        <div 
+          className="bg-white w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-[3rem] shadow-[0_32px_64px_-15px_rgba(0,0,0,0.3)] border border-slate-200 flex flex-col relative pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
         
         {/* Decorative Background Element */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-50/50 rounded-full blur-[100px] -mr-48 -mt-48 pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-50/50 rounded-full blur-[100px] -ml-48 -mb-48 pointer-events-none"></div>
 
         {/* --- HEADER --- */}
-        <header className="px-8 py-8 sm:px-12 flex items-center justify-between border-b border-slate-100 relative z-10">
+        <header className="px-8 py-8 sm:px-12 flex items-center justify-between border-b border-slate-100 relative z-10 rounded-t-[3rem] bg-white">
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 text-white transform rotate-3">
               <FaShoppingCart size={28} />
@@ -100,11 +128,11 @@ export default function CheckoutModal({
         </header>
 
         {/* --- MAIN CONTENT --- */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-8 sm:px-12 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 sm:px-8 py-6 sm:py-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-12">
             
             {/* LEFT: Customer & Summary */}
-            <div className="lg:col-span-6 space-y-12">
+            <div className="lg:col-span-6 space-y-8 sm:space-y-12">
               
               {/* Section: Customer */}
               <section className="space-y-6">
@@ -156,8 +184,13 @@ export default function CheckoutModal({
                   </span>
                 </div>
 
-                <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar mb-8">
-                  {cart.map((item) => (
+                <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2 custom-scrollbar mb-6 sm:mb-8">
+                  {cart.length === 0 ? (
+                    <div className="text-center py-8 text-slate-400">
+                      <p className="text-sm font-bold">No items in cart</p>
+                    </div>
+                  ) : (
+                    cart.map((item) => (
                     <div key={item.id} className="bg-white rounded-2xl p-4 flex justify-between items-center group transition-all hover:shadow-md border border-transparent hover:border-slate-100">
                       <div className="space-y-1">
                         <h4 className="font-black text-slate-800 text-sm leading-tight line-clamp-1">{item.name}</h4>
@@ -170,7 +203,8 @@ export default function CheckoutModal({
                         Rs. {calculateItemTotal(item).toFixed(2)}
                       </span>
                     </div>
-                  ))}
+                    ))
+                  )}
                 </div>
 
                 <div className="space-y-4 pt-6 border-t border-slate-200 border-dashed">
@@ -196,7 +230,7 @@ export default function CheckoutModal({
             </div>
 
             {/* RIGHT: Payment Strategy */}
-            <div className="lg:col-span-6 space-y-12">
+            <div className="lg:col-span-6 space-y-8 sm:space-y-12">
               <section className="space-y-6">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center">
@@ -204,14 +238,14 @@ export default function CheckoutModal({
                   </div>
                   <h3 className="text-xl font-black text-slate-900 tracking-tight">Payment Strategy</h3>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-3 gap-3 sm:gap-4">
                   {paymentMethods.map((method) => (
                     <button
                       key={method.id}
                       onClick={() => setPaymentType(method.id)}
                       onMouseEnter={() => setHoveredMethod(method.id)}
                       onMouseLeave={() => setHoveredMethod(null)}
-                      className={`relative p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col items-center gap-4 group ${
+                      className={`relative p-4 sm:p-6 rounded-[2rem] border-2 transition-all duration-300 flex flex-col items-center gap-3 sm:gap-4 group ${
                         paymentType === method.id
                           ? "border-indigo-600 bg-indigo-600 text-white shadow-xl shadow-indigo-200"
                           : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200 hover:bg-white"
@@ -222,7 +256,7 @@ export default function CheckoutModal({
                       </div>
                       <span className="font-black text-xs uppercase tracking-widest">{method.label}</span>
                       {paymentType === method.id && (
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                           <FaCheck size={10} />
                         </div>
                       )}
@@ -231,14 +265,14 @@ export default function CheckoutModal({
                 </div>
 
                 {paymentType === "Cash" && (
-                  <div className="pt-8 animate-in slide-in-from-top-8 duration-700">
+                  <div className="pt-8">
                     <div className="relative group">
                       {/* Modern Glassmorphic Container */}
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-violet-600/20 rounded-[3rem] blur-2xl group-hover:scale-110 transition-transform duration-700 opacity-50"></div>
                       
                       <div className="relative bg-slate-900 rounded-[3rem] border border-slate-800 p-1 shadow-2xl overflow-hidden">
                         {/* Interactive Input Zone */}
-                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.8rem] p-10 space-y-10">
+                        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-[2.8rem] p-6 sm:p-10 space-y-6 sm:space-y-10">
                           <div className="flex items-center justify-between">
                             <div className="space-y-1">
                               <p className="text-emerald-400 font-black text-[10px] uppercase tracking-[0.3em] italic">Cash Intake</p>
@@ -256,7 +290,9 @@ export default function CheckoutModal({
                               <input
                                 type="number"
                                 inputMode="decimal"
-                                className="bg-transparent border-none focus:ring-0 p-0 text-7xl font-black text-white w-full placeholder-slate-800 tabular-nums tracking-tighter [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                min="0"
+                                step="0.01"
+                                className="bg-transparent border-none focus:ring-0 p-0 text-4xl sm:text-6xl lg:text-7xl font-black text-white w-full placeholder-slate-800 tabular-nums tracking-tighter [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 placeholder="0.00"
                                 value={cashGiven || ""}
                                 onChange={(e) => setCashGiven(Number(e.target.value) || 0)}
@@ -267,19 +303,19 @@ export default function CheckoutModal({
                         </div>
 
                         {/* Surplus/Change Display */}
-                        <div className="px-10 py-8 bg-black/40 backdrop-blur-md flex items-center justify-between border-t border-white/5">
+                        <div className="px-6 sm:px-10 py-6 sm:py-8 bg-black/40 backdrop-blur-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0 border-t border-white/5">
                           <div className="space-y-1">
                             <p className="text-slate-500 font-black text-[10px] uppercase tracking-[0.3em]">Surplus Return</p>
                             <div className="flex items-baseline gap-2">
-                              <span className="text-slate-600 font-black text-xl italic">Rs.</span>
-                              <span className={`text-5xl font-black tracking-tighter tabular-nums transition-all duration-500 ${balance > 0 ? 'text-emerald-400 scale-105' : 'text-slate-700'}`}>
+                              <span className="text-slate-600 font-black text-lg sm:text-xl italic">Rs.</span>
+                              <span className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter tabular-nums transition-all duration-500 ${balance > 0 ? 'text-emerald-400' : 'text-slate-700'}`}>
                                 {balance.toFixed(2)}
                               </span>
                             </div>
                           </div>
 
                           {balance > 0 ? (
-                            <div className="flex flex-col items-center gap-2 animate-in zoom-in duration-500">
+                            <div className="flex flex-col items-center gap-2">
                               <div className="w-16 h-16 bg-emerald-500 text-white rounded-[1.5rem] flex items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.3)] rotate-3">
                                 <FaCheck size={28} />
                               </div>
@@ -301,7 +337,7 @@ export default function CheckoutModal({
         </div>
 
         {/* --- FOOTER --- */}
-        <footer className="px-8 py-8 sm:px-12 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-4 relative z-10">
+        <footer className="px-4 sm:px-8 py-6 sm:py-8 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3 sm:gap-4 relative z-10 rounded-b-[3rem]">
           <button
             onClick={onCancel}
             className="flex-1 px-8 py-5 bg-slate-50 hover:bg-slate-100 text-slate-500 font-black uppercase tracking-widest text-xs rounded-2xl transition-all duration-300 active:scale-95"
@@ -332,6 +368,7 @@ export default function CheckoutModal({
           </button>
         </footer>
       </div>
-    </div>
+      </div>
+    </>
   );
 }
