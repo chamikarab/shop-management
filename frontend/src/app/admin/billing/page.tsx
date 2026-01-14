@@ -545,54 +545,88 @@ export default function BillingPage() {
                   </div>
               </div>
 
-                {displayedProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    onClick={() => addToCart(product)}
-                    className={`modern-card p-5 group cursor-pointer relative overflow-hidden flex flex-col transition-all duration-500 bg-white ${
-                      animatingId === product.id 
-                        ? "scale-105 shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-slate-900 z-10" 
-                        : "hover:border-slate-900 hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] active:scale-95"
-                    } ${
-                      product.stock === 0 ? "opacity-60 grayscale cursor-not-allowed" : ""
-                    }`}
-                  >
-                    {/* Stock Badge */}
-                    <div className="absolute top-4 right-4 z-10">
-                      {product.stock === 0 ? (
-                        <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-[10px] font-black uppercase tracking-wider">Out of Stock</span>
-                      ) : product.stock <= 10 ? (
-                        <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-wider">Low Stock: {product.stock}</span>
-                      ) : (
-                        <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-black uppercase tracking-wider">Stock: {product.stock}</span>
-                            )}
-                    </div>
-
-                    <div className="mb-6">
-                      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-indigo-50 transition-all">
-                        <FaBeer className="text-xl text-slate-400 group-hover:text-indigo-600" />
-                      </div>
-                      <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors mb-1">{product.name}</h3>
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
-                        {product.size && (
-                          <span className="bg-slate-100 px-2 py-0.5 rounded-md">{product.size}</span>
+                {displayedProducts.map((product) => {
+                  const pColor = product.categoryColor || '#6366f1';
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => addToCart(product)}
+                      className={`modern-card p-5 group cursor-pointer relative overflow-hidden flex flex-col transition-all duration-500 bg-white ${
+                        animatingId === product.id 
+                          ? "scale-105 shadow-[0_20px_60px_rgba(0,0,0,0.3)] border-slate-900 z-10" 
+                          : "hover:-translate-y-2 hover:shadow-[0_20px_50px_rgba(0,0,0,0.2)] active:scale-95"
+                      } ${
+                        product.stock === 0 ? "opacity-60 grayscale cursor-not-allowed" : ""
+                      }`}
+                      style={{ 
+                        borderColor: animatingId === product.id ? pColor : undefined,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (animatingId !== product.id && product.stock > 0) {
+                          e.currentTarget.style.borderColor = pColor;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (animatingId !== product.id) {
+                          e.currentTarget.style.borderColor = '';
+                        }
+                      }}
+                    >
+                      {/* Stock Badge */}
+                      <div className="absolute top-4 right-4 z-10">
+                        {product.stock === 0 ? (
+                          <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-[10px] font-black uppercase tracking-wider">Out of Stock</span>
+                        ) : product.stock <= 10 ? (
+                          <span className="px-3 py-1 bg-amber-100 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-wider">Low Stock: {product.stock}</span>
+                        ) : (
+                          <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full text-[10px] font-black uppercase tracking-wider">Stock: {product.stock}</span>
                         )}
-                        <span>•</span>
-                        <span>{product.packaging}</span>
                       </div>
-                            </div>
 
-                    <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                      <div className="text-2xl font-black text-slate-900">
-                        <span className="text-sm font-bold text-slate-400 mr-1">Rs.</span>
-                        {product.price.toFixed(2)}
+                      <div className="mb-6">
+                        <div 
+                          className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-all"
+                          style={{ backgroundColor: `${pColor}10` }} // 10% opacity
+                        >
+                          <FaBeer 
+                            className="text-xl transition-colors" 
+                            style={{ color: pColor }}
+                          />
+                        </div>
+                        <h3 
+                          className="text-lg font-black text-slate-900 leading-tight transition-colors mb-1 group-hover:opacity-80"
+                        >
+                          <span 
+                            className="transition-colors group-hover:text-[var(--hover-color)]" 
+                            style={{ '--hover-color': pColor } as React.CSSProperties}
+                          >
+                            {product.name}
+                          </span>
+                        </h3>
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                          {product.size && (
+                            <span className="bg-slate-100 px-2 py-0.5 rounded-md">{product.size}</span>
+                          )}
+                          <span>•</span>
+                          <span>{product.packaging}</span>
+                        </div>
                       </div>
-                      <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all">
-                        <FaPlus className="text-sm" />
+
+                      <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
+                        <div className="text-2xl font-black text-slate-900">
+                          <span className="text-sm font-bold text-slate-400 mr-1">Rs.</span>
+                          {product.price.toFixed(2)}
+                        </div>
+                        <div 
+                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 group-hover:rotate-12 transition-all"
+                          style={{ backgroundColor: pColor }}
+                        >
+                          <FaPlus className="text-sm" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
       </div>
