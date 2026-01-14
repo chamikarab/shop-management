@@ -111,20 +111,20 @@ export default function CheckoutModal({
           <div className="flex items-center gap-6">
             <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 text-white transform rotate-3">
               <FaShoppingCart size={28} />
-            </div>
-            <div>
+              </div>
+              <div>
               <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-[-0.04em]">
                 Finalize <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Order</span>
               </h2>
               <p className="text-slate-400 font-bold text-xs uppercase tracking-widest mt-1">Review items and process payment</p>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={onCancel}
+            <button
+              onClick={onCancel}
             className="w-12 h-12 bg-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-500 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90"
-          >
+            >
             <FaTimes size={20} />
-          </button>
+            </button>
         </header>
 
         {/* --- MAIN CONTENT --- */}
@@ -147,25 +147,25 @@ export default function CheckoutModal({
                     <label className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors">
                       <FaUser size={16} />
                     </label>
-                    <input
-                      type="text"
+                      <input
+                        type="text"
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
                       placeholder="Customer Name"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                    />
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                      />
                   </div>
                   <div className="group relative">
                     <label className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-indigo-600 transition-colors">
                       <FaPhone size={16} />
                     </label>
-                    <input
-                      type="tel"
+                      <input
+                        type="tel"
                       className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
                       placeholder="Phone Number"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                    />
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                      />
                   </div>
                 </div>
               </section>
@@ -266,7 +266,7 @@ export default function CheckoutModal({
 
                 {paymentType === "Cash" && (
                   <div className="pt-8">
-                    <div className="relative group">
+                      <div className="relative group">
                       {/* Modern Glassmorphic Container */}
                       <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/20 to-violet-600/20 rounded-[3rem] blur-2xl group-hover:scale-110 transition-transform duration-700 opacity-50"></div>
                       
@@ -281,25 +281,25 @@ export default function CheckoutModal({
                             <div className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-emerald-400 border border-white/10 shadow-inner">
                               <FaMoneyBillWave size={24} />
                             </div>
-                          </div>
+                        </div>
 
                           <div className="relative group/input">
                             <div className="absolute -inset-4 bg-white/5 rounded-[2rem] scale-95 opacity-0 group-focus-within/input:scale-100 group-focus-within/input:opacity-100 transition-all duration-500"></div>
                             <div className="relative flex items-center gap-4">
                               <span className="text-3xl font-black text-slate-600 group-focus-within/input:text-emerald-500 transition-colors">Rs.</span>
-                              <input
-                                type="number"
-                                inputMode="decimal"
+                        <input
+                          type="number"
+                          inputMode="decimal"
                                 min="0"
                                 step="0.01"
                                 className="bg-transparent border-none focus:ring-0 p-0 text-4xl sm:text-6xl lg:text-7xl font-black text-white w-full placeholder-slate-800 tabular-nums tracking-tighter [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                placeholder="0.00"
-                                value={cashGiven || ""}
-                                onChange={(e) => setCashGiven(Number(e.target.value) || 0)}
-                                autoFocus
-                              />
-                            </div>
-                          </div>
+                          placeholder="0.00"
+                          value={cashGiven || ""}
+                          onChange={(e) => setCashGiven(Number(e.target.value) || 0)}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
                         </div>
 
                         {/* Surplus/Change Display */}
@@ -367,7 +367,7 @@ export default function CheckoutModal({
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
           </button>
         </footer>
-      </div>
+        </div>
       </div>
     </>
   );
