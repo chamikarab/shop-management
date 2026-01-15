@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import BeerLoader from "@/components/BeerLoader";
 import { 
   FaTag, FaBarcode, FaImage, 
   FaCubes, FaShieldAlt, FaRocket, FaArrowLeft
@@ -32,6 +33,7 @@ function ModifyProductPageContent() {
   useEffect(() => {
     if (!id) return;
 
+    const startTime = Date.now();
     const fetchProduct = async () => {
       try {
         setLoading(true);
@@ -56,7 +58,12 @@ function ModifyProductPageContent() {
         console.error("Failed to fetch product", error);
         toast.error("Failed to load product details");
       } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) {
+          setTimeout(() => setLoading(false), 1500 - elapsed);
+        } else {
         setLoading(false);
+        }
       }
     };
 
@@ -110,21 +117,9 @@ function ModifyProductPageContent() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="text-center space-y-6">
-          <div className="relative w-20 h-20 mx-auto">
-            <div className="absolute inset-0 border-4 border-indigo-100 rounded-full" />
-            <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin" />
-          </div>
-          <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-xs">Accessing SKU Database...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <>
+      {(loading || saving) && <BeerLoader />}
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 bg-[#f8fafc]">
       {/* 2026 Ultra-Modern Studio Header */}
       <div className="relative mb-10 pt-0">
@@ -302,7 +297,7 @@ function ModifyProductPageContent() {
                       value={formData.size}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
+                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 font-bold appearance-none cursor-pointer"
                     >
                       <option value="">Select Calibration</option>
                       <option value="330ml">330ml Standard</option>
@@ -323,7 +318,7 @@ function ModifyProductPageContent() {
                       value={formData.packaging}
                       onChange={handleInputChange}
                       required
-                      className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
+                        className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 font-bold appearance-none cursor-pointer"
                     >
                       <option value="">Select Containment</option>
                       <option value="Can">Aluminum Can</option>
@@ -351,17 +346,8 @@ function ModifyProductPageContent() {
                 disabled={saving}
                 className="flex-[2] bg-slate-900 text-white font-black uppercase tracking-widest text-[14px] py-6 rounded-[2.5rem] hover:bg-indigo-600 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-xl shadow-slate-200"
               >
-                {saving ? (
-                  <>
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Synchronizing SKU...</span>
-                  </>
-                ) : (
-                  <>
                     <FaRocket size={18} />
                     <span>Synchronize Asset</span>
-                  </>
-                )}
               </button>
             </div>
           </form>
@@ -472,6 +458,7 @@ function ModifyProductPageContent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -482,4 +469,3 @@ export default function ModifyProductPage() {
     </WithPermission>
   );
 }
-

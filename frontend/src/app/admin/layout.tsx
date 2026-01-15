@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
+import BeerLoader from "@/components/BeerLoader";
 import {
   FaBox,
   FaClipboardList,
@@ -84,10 +85,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         console.error("❌ Error fetching user:", err);
         router.push("/login");
       } finally {
+        // Ensure loader stays for at least 1.5 seconds
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) {
+          setTimeout(() => setLoading(false), 1500 - elapsed);
+        } else {
         setLoading(false);
+        }
       }
     };
 
+    const startTime = Date.now();
     // Always run fresh fetch
     fetchUser();
 
@@ -102,16 +110,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     window.addEventListener("storage", onStorageChange);
     return () => window.removeEventListener("storage", onStorageChange);
   }, [router]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-black text-white">
-        Loading Admin Panel...
-      </div>
-    );
-  }
-
-  if (!user) return null;
 
   const handleLogout = async () => {
     try {
@@ -129,6 +127,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className={`admin-layout flex h-screen overflow-hidden ${collapsed ? "sidebar-collapsed" : ""} ${mobileOpen ? "mobile-sidebar-open" : ""}`}>
+      {/* Global Admin Loader Overlay */}
+      {loading && <BeerLoader />}
+      
+      {!user ? (
+        !loading && (
+          <div className="fixed inset-0 z-[10000] bg-slate-950 flex items-center justify-center">
+            <div className="text-white font-black uppercase tracking-widest animate-pulse">
+              Security Verification...
+            </div>
+          </div>
+        )
+      ) : (
+        <>
       {/* Mobile Toggle Button */}
       <button
         onClick={() => setMobileOpen(!mobileOpen)}
@@ -310,6 +321,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           {children}
         </div>
       </main>
+        </>
+      )}
     </div>
   );
 }
