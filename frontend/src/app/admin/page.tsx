@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import BeerLoader from "@/components/BeerLoader";
 import { 
   FaBox, FaUsers, FaClipboardList, FaPlus, FaShoppingCart, 
   FaArrowRight, FaChartLine, FaCheckCircle, FaBolt, 
@@ -57,9 +58,8 @@ export default function AdminDashboard() {
     };
 
     const fetchDashboardData = async () => {
+      const startTime = Date.now();
       try {
-        await fetchWithRetry("/api/me");
-
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
         const [productsRes, usersRes, ordersRes] = await Promise.all([
           fetchWithRetry(`${apiUrl}/products`),
@@ -88,10 +88,14 @@ export default function AdminDashboard() {
         });
       } catch (err) {
         console.error("Failed to load dashboard:", err);
-        toast.error("Session expired. Please log in again.");
-        window.location.href = "/login";
+        toast.error("Failed to load dashboard data.");
       } finally {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) {
+          setTimeout(() => setLoading(false), 1500 - elapsed);
+        } else {
         setLoading(false);
+        }
       }
     };
 
@@ -99,17 +103,7 @@ export default function AdminDashboard() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex flex-col justify-center items-center h-[calc(100vh-100px)]">
-        <div className="relative">
-          <div className="w-20 h-20 border-4 border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <FaBolt className="text-indigo-600 animate-pulse" size={24} />
-          </div>
-        </div>
-        <p className="mt-6 text-slate-400 font-bold tracking-widest uppercase text-xs">Initializing Studio...</p>
-      </div>
-    );
+    return <BeerLoader />;
   }
 
   return (

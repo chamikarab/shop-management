@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { FaBeer, FaEnvelope, FaLock, FaArrowRight } from "react-icons/fa";
+import BeerLoader from "@/components/BeerLoader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -48,6 +49,8 @@ export default function LoginPage() {
   if (!mounted) return null;
 
   return (
+    <>
+      {loading && <BeerLoader />}
     <div className="min-h-screen bg-[#030712] flex flex-col items-center justify-center relative overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
       
       {/* --- LAYER 1: DYNAMIC MESH GRADIENT --- */}
@@ -225,5 +228,7 @@ export default function LoginPage() {
         }
       `}</style>
     </div>
+    </>
   );
 }
+

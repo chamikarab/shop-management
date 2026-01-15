@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import BeerLoader from "@/components/BeerLoader";
 import { FaClipboardList, FaBox, FaArrowLeft, FaPrint, FaDownload, FaCheckCircle } from "react-icons/fa";
 import Link from "next/link";
 import Invoice from "@/components/Invoice";
@@ -43,6 +44,7 @@ export default function OrderDetailsPage() {
   useEffect(() => {
     if (!id) return;
 
+    const startTime = Date.now();
     fetch(`${apiUrl}/orders/${id}`, { credentials: "include" })
       .then((res) => res.json())
       .then((data) => {
@@ -52,12 +54,18 @@ export default function OrderDetailsPage() {
           toast.error("Order not found");
           router.push("/admin/orders");
         }
-        setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to fetch order", err);
         toast.error("Failed to load order details");
+      })
+      .finally(() => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed < 1500) {
+          setTimeout(() => setLoading(false), 1500 - elapsed);
+        } else {
         setLoading(false);
+        }
       });
   }, [id, apiUrl, router]);
 
@@ -83,14 +91,7 @@ export default function OrderDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-[6px] border-indigo-500 border-t-transparent mb-6"></div>
-          <p className="text-slate-500 text-xl font-bold">Loading Order Records...</p>
-        </div>
-      </div>
-    );
+    return <BeerLoader />;
   }
 
   if (!order) return null;

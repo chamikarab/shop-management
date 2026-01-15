@@ -9,6 +9,7 @@ import {
   FaCubes, FaShieldAlt, FaRocket,
   FaLayerGroup, FaMoneyBillWave, FaBoxOpen, FaRulerCombined, FaWineBottle
 } from "react-icons/fa";
+import BeerLoader from "@/components/BeerLoader";
 import WithPermission from "@/components/WithPermission";
 
 function AddProductPageContent() {
@@ -27,10 +28,6 @@ function AddProductPageContent() {
     size: "",
     packaging: "",
   });
-
-  const getCategoryGradient = (color: string) => {
-    return `from-[${color}]/20 via-[${color}]/10 to-transparent`;
-  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -80,6 +77,8 @@ function AddProductPageContent() {
   };
 
   return (
+    <>
+      {loading && <BeerLoader />}
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 min-h-screen bg-[#f8fafc]">
       {/* 2026 Ultra-Modern Studio Header */}
       <div className="relative mb-10 pt-0">
@@ -305,17 +304,8 @@ function AddProductPageContent() {
               disabled={loading}
                 className="flex-[2] bg-slate-900 text-white font-black uppercase tracking-widest text-[14px] py-6 rounded-[2.5rem] hover:bg-indigo-600 hover:shadow-2xl hover:shadow-indigo-200 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-4 shadow-xl shadow-slate-200"
             >
-              {loading ? (
-                <>
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Processing SKU...</span>
-                </>
-              ) : (
-                <>
                     <FaRocket size={18} />
                     <span>Deploy Product</span>
-                </>
-              )}
             </button>
           </div>
         </form>
@@ -469,6 +459,7 @@ function AddProductPageContent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
