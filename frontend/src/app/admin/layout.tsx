@@ -223,7 +223,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link ${pathname === "/admin/products" ? "active" : ""}`}
                   >
                     <FaBox />
-                    <span>All Assets</span>
+                    <span>All Products</span>
                   </Link>
                 )}
                 {user.permissions.includes("products:add") && (
@@ -232,7 +232,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link ${pathname === "/admin/products/add" ? "active" : ""}`}
                   >
                     <FaPlus />
-                    <span>Deploy SKU</span>
+                    <span>Add Product</span>
                   </Link>
                 )}
                 {user.permissions.includes("products:purchasing") && (
@@ -241,7 +241,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link ${pathname === "/admin/products/purchasing" ? "active" : ""}`}
                   >
                     <FaShoppingCart />
-                    <span>Procurement</span>
+                    <span>Purchase Products</span>
                   </Link>
                 )}
               </div>
@@ -256,7 +256,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   className={`sidebar-link ${pathname === "/admin/orders" ? "active" : ""}`}
                 >
                   <FaClipboardList />
-                  <span>Order Matrix</span>
+                  <span>All Orders</span>
                 </Link>
               </div>
             )}
@@ -271,7 +271,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link ${pathname === "/admin/users" ? "active" : ""}`}
                   >
                     <FaUsers />
-                    <span>Identity Hub</span>
+                    <span>All Users</span>
                   </Link>
                 )}
                 {user.permissions.includes("users:add") && (
@@ -280,7 +280,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`sidebar-link ${pathname === "/admin/users/add" ? "active" : ""}`}
                   >
                     <FaUserPlus />
-                    <span>Provision User</span>
+                    <span>Add Users</span>
                   </Link>
                 )}
               </div>
@@ -310,7 +310,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               className="logout-btn"
             >
               <FaSignOutAlt />
-              <span>Terminate Session</span>
+              <span>Logout</span>
             </button>
           </div>
         </div>
