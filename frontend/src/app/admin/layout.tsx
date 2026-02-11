@@ -310,7 +310,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               className="logout-btn"
             >
               <FaSignOutAlt />
-              <span>Terminate Session</span>
+              <span>Logout</span>
             </button>
           </div>
         </div>
