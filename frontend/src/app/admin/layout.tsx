@@ -19,6 +19,7 @@ import {
   FaUsers,
   FaBeer,
   FaPlus,
+  FaDollarSign,
 } from "react-icons/fa";
 import "./styles/admin.css";
 
@@ -242,6 +243,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   >
                     <FaShoppingCart />
                     <span>Purchase Products</span>
+                  </Link>
+                )}
+                {user.permissions.includes("products:purchasing") && (
+                  <Link
+                    href="/admin/products/pricing"
+                    className={`sidebar-link ${pathname === "/admin/products/pricing" ? "active" : ""}`}
+                  >
+                    <FaDollarSign />
+                    <span>Purchase Pricing</span>
                   </Link>
                 )}
               </div>

@@ -9,6 +9,7 @@ const protectedRoutes: Record<string, string> = {
   '/admin/products': 'products:view',
   '/admin/products/add': 'products:add',
   '/admin/products/purchasing': 'products:purchasing',
+  '/admin/products/pricing': 'products:purchasing',
   '/admin/users': 'users:view',
   '/admin/users/add': 'users:add',
   '/admin/orders': 'orders:view',
