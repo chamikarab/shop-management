@@ -28,6 +28,16 @@ export class Product {
 
   @Prop()
   status: 'Available' | 'Out of Stock' | 'Unavailable';
+
+  // Optional purchasing price metadata
+  @Prop()
+  purchasePriceWithoutVat?: number;
+
+  @Prop()
+  vatPercentage?: number;
+
+  @Prop()
+  purchasePriceWithVat?: number;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
