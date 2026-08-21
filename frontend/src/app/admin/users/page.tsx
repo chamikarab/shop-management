@@ -8,7 +8,7 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
-import { USER_ROLES, formatRoleLabel, getRoleColor } from "@/lib/roles";
+import { USER_ROLES, formatRoleLabel, getRoleColor, canCreateUsers, canManageUser, canDeleteUser, getCreatableRoles } from "@/lib/roles";
 
 type User = {
   _id: string;
@@ -20,8 +20,6 @@ type User = {
   createdAt: string;
 };
 
-const roles = USER_ROLES.map((r) => r.value);
-
 function AllUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +27,7 @@ function AllUsersPage() {
   const [editRole, setEditRole] = useState("");
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [sortBy, setSortBy] = useState<keyof User>("name");
@@ -54,6 +53,7 @@ function AllUsersPage() {
     const res = await fetch("/api/me", { credentials: "include" });
     const data = await res.json();
     if (data?.user?._id) setCurrentUserId(data.user._id);
+    if (data?.user?.role) setCurrentUserRole(data.user.role);
     } catch (err) {
       console.error("Failed to fetch current user", err);
     }
@@ -107,14 +107,16 @@ function AllUsersPage() {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this user?")) {
       try {
-        const res = await fetch(`${apiUrl}/users/${id}`, {
+        const res = await fetch(`/api/users/${id}`, {
           method: "DELETE",
+          credentials: "include",
         });
         if (res.ok) {
           toast.success("User deleted successfully");
           fetchUsers();
         } else {
-          toast.error("Failed to delete user");
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.message || "Failed to delete user");
         }
       } catch (err) {
         console.error(err);
@@ -133,9 +135,10 @@ function AllUsersPage() {
     if (!editUser) return;
 
     try {
-      const res = await fetch(`${apiUrl}/users/${editUser._id}`, {
+      const res = await fetch(`/api/users/${editUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           role: editRole,
           permissions: editPermissions,
@@ -155,7 +158,8 @@ function AllUsersPage() {
           }, 1000);
         }
       } else {
-        toast.error("Failed to update user");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.message || "Failed to update user");
       }
     } catch (err) {
       console.error(err);
@@ -179,6 +183,11 @@ function AllUsersPage() {
     "products:purchasing",
     "orders:view",
   ];
+
+  const creatableRoles = useMemo(
+    () => getCreatableRoles(currentUserRole || undefined),
+    [currentUserRole]
+  );
 
   const getRoleBadgeColor = (role: string) => getRoleColor(role);
 
@@ -210,6 +219,7 @@ function AllUsersPage() {
         </div>
 
           <div className="flex flex-col items-start lg:items-end gap-6">
+          {canCreateUsers(currentUserRole || undefined) && (
         <Link
           href="/admin/users/add"
               className="flex items-center gap-3 group bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 lg:mr-8"
@@ -219,6 +229,7 @@ function AllUsersPage() {
               </div>
               <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Add New User</span>
         </Link>
+          )}
           </div>
         </div>
       </div>
@@ -431,6 +442,7 @@ function AllUsersPage() {
                   </td>
                     <td className="px-8 py-6">
                       <div className="flex justify-center items-center gap-2">
+                      {canManageUser(currentUserRole || undefined, u.role) && (
                       <button
                         onClick={() => handleEdit(u)}
                           className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-xl rounded-2xl transition-all duration-300 active:scale-95"
@@ -438,7 +450,8 @@ function AllUsersPage() {
                       >
                           <FaEdit size={18} />
                       </button>
-                      {u._id !== currentUserId && (
+                      )}
+                      {u._id !== currentUserId && canDeleteUser(currentUserRole || undefined, u.role) && (
                         <button
                           onClick={() => handleDelete(u._id)}
                             className="p-3 text-slate-400 hover:text-rose-600 hover:bg-white hover:shadow-xl rounded-2xl transition-all duration-300 active:scale-95"
@@ -446,6 +459,10 @@ function AllUsersPage() {
                         >
                             <FaTrash size={18} />
                         </button>
+                      )}
+                      {!canManageUser(currentUserRole || undefined, u.role) &&
+                        !(u._id !== currentUserId && canDeleteUser(currentUserRole || undefined, u.role)) && (
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">—</span>
                       )}
                     </div>
                   </td>
@@ -497,9 +514,9 @@ function AllUsersPage() {
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value)}
                 >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {formatRoleLabel(r)}
+                  {creatableRoles.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
                     </option>
                   ))}
                 </select>

@@ -46,3 +46,33 @@ export function getRoleGradient(role: string): string {
       return "from-slate-500/10 via-slate-400/5 to-transparent";
   }
 }
+
+export function canCreateUsers(role?: string): boolean {
+  return role === "super_admin" || role === "admin";
+}
+
+export function canAssignRole(actorRole?: string, targetRole?: string): boolean {
+  if (!actorRole || !targetRole) return false;
+  if (actorRole === "super_admin") return true;
+  if (actorRole === "admin") {
+    return targetRole === "manager" || targetRole === "cashier";
+  }
+  return false;
+}
+
+export function canDeleteUser(actorRole?: string, targetRole?: string): boolean {
+  if (!actorRole || !targetRole) return false;
+  if (actorRole === "super_admin") return true;
+  if (actorRole === "admin") {
+    return targetRole === "manager" || targetRole === "cashier";
+  }
+  return false;
+}
+
+export function canManageUser(actorRole?: string, targetRole?: string): boolean {
+  return canDeleteUser(actorRole, targetRole);
+}
+
+export function getCreatableRoles(actorRole?: string) {
+  return USER_ROLES.filter((role) => canAssignRole(actorRole, role.value));
+}

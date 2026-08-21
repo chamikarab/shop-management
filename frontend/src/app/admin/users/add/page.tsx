@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -10,14 +10,15 @@ import {
 } from "react-icons/fa";
 import BeerLoader from "@/components/BeerLoader";
 import WithPermission from "@/components/WithPermission";
-import { USER_ROLES, formatRoleLabel, getRoleColor, getRoleGradient } from "@/lib/roles";
+import { formatRoleLabel, getRoleColor, getRoleGradient, canCreateUsers, getCreatableRoles } from "@/lib/roles";
 
 function AddUserForm() {
   const [loading, setLoading] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
   type PermissionKey = 
     | "dashboard:access"
@@ -46,6 +47,34 @@ function AddUserForm() {
     "users:add": false,
     "orders:view": false,
   });
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) {
+          router.push("/unauthorized");
+          return;
+        }
+        const data = await res.json();
+        const role = data?.user?.role;
+        setCurrentUserRole(role || null);
+        if (!canCreateUsers(role)) {
+          router.push("/unauthorized");
+        }
+      } catch {
+        router.push("/unauthorized");
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+    checkAccess();
+  }, [router]);
+
+  const creatableRoles = useMemo(
+    () => getCreatableRoles(currentUserRole || undefined),
+    [currentUserRole]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -90,19 +119,23 @@ function AddUserForm() {
     };
 
     try {
-      const res = await fetch(`${apiUrl}/users`, {
+      const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(submitData),
       });
 
-      if (!res.ok) throw new Error("Failed to add user");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to add user");
+      }
 
       toast.success("User successfully deployed to system!");
       router.push("/admin/users");
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred during user creation.");
+      toast.error(err instanceof Error ? err.message : "An error occurred during user creation.");
     } finally {
       setLoading(false);
     }
@@ -120,6 +153,10 @@ function AddUserForm() {
       default: return <FaShieldAlt size={14} />;
     }
   };
+
+  if (checkingAccess) {
+    return <BeerLoader />;
+  }
 
   return (
     <>
@@ -310,7 +347,7 @@ function AddUserForm() {
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
                     >
                 <option value="">Select Role</option>
-                {USER_ROLES.map((role) => (
+                {creatableRoles.map((role) => (
                   <option key={role.value} value={role.value}>
                     {role.label}
                   </option>
