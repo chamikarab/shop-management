@@ -9,6 +9,7 @@ import { AuthModule } from './auth/auth.module';
 import { MeModule } from './me/me.module';
 import { OrderModule } from './orders/order.module';
 import { PurchaseModule } from './purchases/purchase.module';
+import { ExpenseModule } from './expenses/expense.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { PurchaseModule } from './purchases/purchase.module';
     MeModule,
     OrderModule,
     PurchaseModule,
+    ExpenseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
