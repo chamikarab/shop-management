@@ -17,6 +17,13 @@ export class Expense {
   @Prop({ required: true })
   expenseDate: string;
 
+  @Prop({ default: false })
+  isFixed?: boolean;
+
+  /** YYYY-MM — first month this fixed expense applies */
+  @Prop()
+  effectiveFrom?: string;
+
   @Prop()
   notes?: string;
 }
