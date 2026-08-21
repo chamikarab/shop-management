@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
+import { USER_ROLES, formatRoleLabel, getRoleColor, canCreateUsers, canManageUser, canDeleteUser, getCreatableRoles } from "@/lib/roles";
 
 type User = {
   _id: string;
@@ -19,8 +20,6 @@ type User = {
   createdAt: string;
 };
 
-const roles = ["admin", "manager", "cashier"];
-
 function AllUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +27,7 @@ function AllUsersPage() {
   const [editRole, setEditRole] = useState("");
   const [editPermissions, setEditPermissions] = useState<string[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [sortBy, setSortBy] = useState<keyof User>("name");
@@ -53,6 +53,7 @@ function AllUsersPage() {
     const res = await fetch("/api/me", { credentials: "include" });
     const data = await res.json();
     if (data?.user?._id) setCurrentUserId(data.user._id);
+    if (data?.user?.role) setCurrentUserRole(data.user.role);
     } catch (err) {
       console.error("Failed to fetch current user", err);
     }
@@ -67,11 +68,12 @@ function AllUsersPage() {
   // Stats calculation
   const stats = useMemo(() => {
     const totalUsers = users.length;
-    const adminCount = users.filter(u => u.role === "admin").length;
-    const managerCount = users.filter(u => u.role === "manager").length;
-    const cashierCount = users.filter(u => u.role === "cashier").length;
+    const superAdminCount = users.filter((u) => u.role === "super_admin").length;
+    const adminCount = users.filter((u) => u.role === "admin").length;
+    const managerCount = users.filter((u) => u.role === "manager").length;
+    const cashierCount = users.filter((u) => u.role === "cashier").length;
     
-    return { totalUsers, adminCount, managerCount, cashierCount };
+    return { totalUsers, superAdminCount, adminCount, managerCount, cashierCount };
   }, [users]);
 
   // Filter and Sort users
@@ -105,14 +107,16 @@ function AllUsersPage() {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this user?")) {
       try {
-        const res = await fetch(`${apiUrl}/users/${id}`, {
+        const res = await fetch(`/api/users/${id}`, {
           method: "DELETE",
+          credentials: "include",
         });
         if (res.ok) {
           toast.success("User deleted successfully");
           fetchUsers();
         } else {
-          toast.error("Failed to delete user");
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.message || "Failed to delete user");
         }
       } catch (err) {
         console.error(err);
@@ -131,9 +135,10 @@ function AllUsersPage() {
     if (!editUser) return;
 
     try {
-      const res = await fetch(`${apiUrl}/users/${editUser._id}`, {
+      const res = await fetch(`/api/users/${editUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           role: editRole,
           permissions: editPermissions,
@@ -153,7 +158,8 @@ function AllUsersPage() {
           }, 1000);
         }
       } else {
-        toast.error("Failed to update user");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.message || "Failed to update user");
       }
     } catch (err) {
       console.error(err);
@@ -178,14 +184,12 @@ function AllUsersPage() {
     "orders:view",
   ];
 
-  const getRoleColor = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin": return "bg-purple-50 text-purple-600 border-purple-100";
-      case "manager": return "bg-indigo-50 text-indigo-600 border-indigo-100";
-      case "cashier": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      default: return "bg-slate-50 text-slate-600 border-slate-100";
-    }
-  };
+  const creatableRoles = useMemo(
+    () => getCreatableRoles(currentUserRole || undefined),
+    [currentUserRole]
+  );
+
+  const getRoleBadgeColor = (role: string) => getRoleColor(role);
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 bg-[#f8fafc]">
@@ -215,6 +219,7 @@ function AllUsersPage() {
         </div>
 
           <div className="flex flex-col items-start lg:items-end gap-6">
+          {canCreateUsers(currentUserRole || undefined) && (
         <Link
           href="/admin/users/add"
               className="flex items-center gap-3 group bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 lg:mr-8"
@@ -224,12 +229,13 @@ function AllUsersPage() {
               </div>
               <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Add New User</span>
         </Link>
+          )}
           </div>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div className="modern-card group flex items-center gap-6 border-l-4 border-indigo-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
           <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500">
             <FaUsers size={28} />
@@ -237,6 +243,15 @@ function AllUsersPage() {
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Users</p>
             <p className="text-3xl font-black text-slate-900">{stats.totalUsers}</p>
+          </div>
+        </div>
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-rose-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-rose-50 rounded-2xl text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-500">
+            <FaUserShield size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Super Admins</p>
+            <p className="text-3xl font-black text-slate-900">{stats.superAdminCount}</p>
           </div>
         </div>
         <div className="modern-card group flex items-center gap-6 border-l-4 border-purple-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
@@ -292,9 +307,11 @@ function AllUsersPage() {
               className="bg-transparent border-none focus:ring-0 text-sm font-black text-slate-600 uppercase tracking-widest cursor-pointer min-w-[140px]"
             >
               <option value="all">All Roles</option>
-              <option value="admin">Admin Only</option>
-              <option value="manager">Manager Only</option>
-              <option value="cashier">Cashier Only</option>
+              {USER_ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label} Only
+                </option>
+              ))}
             </select>
           </div>
 
@@ -389,8 +406,8 @@ function AllUsersPage() {
                       <span className="text-slate-600 font-medium">{u.nic}</span>
                   </td>
                     <td className="px-8 py-6 text-center">
-                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getRoleColor(u.role)}`}>
-                      {u.role}
+                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getRoleBadgeColor(u.role)}`}>
+                      {formatRoleLabel(u.role)}
                     </span>
                   </td>
                     <td className="px-8 py-6 text-center">
@@ -425,6 +442,7 @@ function AllUsersPage() {
                   </td>
                     <td className="px-8 py-6">
                       <div className="flex justify-center items-center gap-2">
+                      {canManageUser(currentUserRole || undefined, u.role) && (
                       <button
                         onClick={() => handleEdit(u)}
                           className="p-3 text-slate-400 hover:text-indigo-600 hover:bg-white hover:shadow-xl rounded-2xl transition-all duration-300 active:scale-95"
@@ -432,7 +450,8 @@ function AllUsersPage() {
                       >
                           <FaEdit size={18} />
                       </button>
-                      {u._id !== currentUserId && (
+                      )}
+                      {u._id !== currentUserId && canDeleteUser(currentUserRole || undefined, u.role) && (
                         <button
                           onClick={() => handleDelete(u._id)}
                             className="p-3 text-slate-400 hover:text-rose-600 hover:bg-white hover:shadow-xl rounded-2xl transition-all duration-300 active:scale-95"
@@ -440,6 +459,10 @@ function AllUsersPage() {
                         >
                             <FaTrash size={18} />
                         </button>
+                      )}
+                      {!canManageUser(currentUserRole || undefined, u.role) &&
+                        !(u._id !== currentUserId && canDeleteUser(currentUserRole || undefined, u.role)) && (
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">—</span>
                       )}
                     </div>
                   </td>
@@ -491,9 +514,9 @@ function AllUsersPage() {
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value)}
                 >
-                  {roles.map((r) => (
-                    <option key={r} value={r}>
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                  {creatableRoles.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
                     </option>
                   ))}
                 </select>

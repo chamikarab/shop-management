@@ -94,6 +94,7 @@ export default function SalesReportPage() {
     () => ({
       title: "Sales Report",
       subtitle: getFilterSubtitle(filters),
+      pdfTheme: "sales",
       filename: buildExportFilename("sales-report"),
       summary: [
         { label: "Total Revenue", value: formatCurrency(report.totalRevenue) },

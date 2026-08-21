@@ -116,6 +116,7 @@ export default function TopProductsReportPage() {
     () => ({
       title: "Top Products Report",
       subtitle: getFilterSubtitle(filters),
+      pdfTheme: "topProducts",
       filename: buildExportFilename("top-products-report"),
       summary: [
         { label: "Total Units Sold", value: String(totals.quantity) },

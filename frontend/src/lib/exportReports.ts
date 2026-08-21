@@ -12,7 +12,67 @@ export type ExportReportPayload = {
   filename: string;
   summary?: { label: string; value: string }[];
   sections: ExportSection[];
+  /** PDF table header color theme (CSV exports are unchanged) */
+  pdfTheme?: PdfReportThemeKey;
 };
+
+export type PdfReportTheme = {
+  header: [number, number, number];
+  grandTotalFill: [number, number, number];
+  grandTotalText: [number, number, number];
+};
+
+export const PDF_REPORT_THEMES = {
+  dailySales: {
+    header: [74, 68, 209],
+    grandTotalFill: [224, 231, 255],
+    grandTotalText: [67, 56, 202],
+  },
+  monthlyPnl: {
+    header: [22, 163, 74],
+    grandTotalFill: [220, 252, 231],
+    grandTotalText: [21, 128, 61],
+  },
+  dailyStock: {
+    header: [219, 39, 119],
+    grandTotalFill: [252, 231, 243],
+    grandTotalText: [190, 24, 93],
+  },
+  purchasing: {
+    header: [234, 88, 12],
+    grandTotalFill: [255, 237, 213],
+    grandTotalText: [194, 65, 12],
+  },
+  sales: {
+    header: [37, 99, 235],
+    grandTotalFill: [219, 234, 254],
+    grandTotalText: [29, 78, 216],
+  },
+  topProducts: {
+    header: [13, 148, 136],
+    grandTotalFill: [204, 251, 241],
+    grandTotalText: [15, 118, 110],
+  },
+  overview: {
+    header: [79, 70, 229],
+    grandTotalFill: [224, 231, 255],
+    grandTotalText: [67, 56, 202],
+  },
+} satisfies Record<string, PdfReportTheme>;
+
+export type PdfReportThemeKey = keyof typeof PDF_REPORT_THEMES;
+
+const DEFAULT_PDF_THEME: PdfReportTheme = PDF_REPORT_THEMES.overview;
+
+export function getPdfReportTheme(key?: PdfReportThemeKey): PdfReportTheme {
+  return key ? PDF_REPORT_THEMES[key] : DEFAULT_PDF_THEME;
+}
+
+export const SHOP_NAME = process.env.NEXT_PUBLIC_SHOP_NAME || "SISILA BEER";
+
+export function buildDocumentTitle(reportTitle: string): string {
+  return `${SHOP_NAME} - ${reportTitle.toUpperCase()}`;
+}
 
 type PdfCell =
   | string
@@ -27,8 +87,10 @@ type PdfCell =
       };
     };
 
-const GRAND_TOTAL_FILL: [number, number, number] = [224, 231, 255];
-const GRAND_TOTAL_TEXT: [number, number, number] = [67, 56, 202];
+
+function isGrandTotalLabel(label: string): boolean {
+  return label.toLowerCase().includes("grand total");
+}
 
 function getFirstCellContent(row: (string | number)[] | PdfCell[]): string {
   const first = row[0];
@@ -39,22 +101,28 @@ function getFirstCellContent(row: (string | number)[] | PdfCell[]): string {
 }
 
 function isGrandTotalRow(row: (string | number)[] | PdfCell[]): boolean {
-  return getFirstCellContent(row).toLowerCase() === "grand total";
+  return isGrandTotalLabel(getFirstCellContent(row));
 }
 
-function grandTotalPdfRow(row: (string | number)[]): PdfCell[] {
+function grandTotalPdfRow(
+  row: (string | number)[],
+  theme: PdfReportTheme = DEFAULT_PDF_THEME
+): PdfCell[] {
   return row.map((cell, index) => ({
     content: String(cell ?? ""),
     styles: {
-      fillColor: GRAND_TOTAL_FILL,
-      textColor: GRAND_TOTAL_TEXT,
+      fillColor: theme.grandTotalFill,
+      textColor: theme.grandTotalText,
       fontStyle: "bold" as const,
       ...(index === 0 ? { valign: "middle" as const } : {}),
     },
   }));
 }
 
-function mergeCategoryColumnRows(rows: (string | number)[][]): {
+function mergeCategoryColumnRows(
+  rows: (string | number)[][],
+  pdfTheme: PdfReportTheme = DEFAULT_PDF_THEME
+): {
   csvRows: (string | number)[][];
   pdfRows: PdfCell[][];
 } {
@@ -66,10 +134,9 @@ function mergeCategoryColumnRows(rows: (string | number)[][]): {
     const row = rows[index];
     const firstCell = String(row[0] ?? "");
 
-    // Keep summary rows like "Grand Total" unmerged
-    if (firstCell.toLowerCase() === "grand total") {
+    if (isGrandTotalLabel(firstCell)) {
       csvRows.push(row);
-      pdfRows.push(grandTotalPdfRow(row));
+      pdfRows.push(grandTotalPdfRow(row, pdfTheme));
       index += 1;
       continue;
     }
@@ -79,7 +146,7 @@ function mergeCategoryColumnRows(rows: (string | number)[][]): {
     while (
       groupEnd < rows.length &&
       String(rows[groupEnd][0] ?? "") === category &&
-      String(rows[groupEnd][0] ?? "").toLowerCase() !== "grand total"
+      !isGrandTotalLabel(String(rows[groupEnd][0] ?? ""))
     ) {
       groupEnd += 1;
     }
@@ -106,15 +173,18 @@ function mergeCategoryColumnRows(rows: (string | number)[][]): {
   return { csvRows, pdfRows };
 }
 
-function prepareSectionRows(section: ExportSection) {
+function prepareSectionRows(
+  section: ExportSection,
+  pdfTheme: PdfReportTheme = DEFAULT_PDF_THEME
+) {
   if (!section.mergeCategoryColumn) {
     const csvRows = section.rows;
     const pdfRows = section.rows.map((row) =>
-      isGrandTotalRow(row) ? grandTotalPdfRow(row) : row.map(String)
+      isGrandTotalRow(row) ? grandTotalPdfRow(row, pdfTheme) : row.map(String)
     );
     return { csvRows, pdfRows };
   }
-  return mergeCategoryColumnRows(section.rows);
+  return mergeCategoryColumnRows(section.rows, pdfTheme);
 }
 
 function escapeCsvCell(value: string | number): string {
@@ -137,8 +207,10 @@ function downloadBlob(content: Blob, filename: string) {
 export function exportReportCsv(payload: ExportReportPayload) {
   const lines: string[] = [];
   const generatedAt = new Date().toLocaleString("en-LK");
+  const documentTitle = buildDocumentTitle(payload.title);
 
-  lines.push(`Report,${escapeCsvCell(payload.title)}`);
+  lines.push(documentTitle);
+  lines.push("");
   if (payload.subtitle) lines.push(`Period,${escapeCsvCell(payload.subtitle)}`);
   lines.push(`Generated,${escapeCsvCell(generatedAt)}`);
   lines.push("");
@@ -173,27 +245,33 @@ export function exportReportCsv(payload: ExportReportPayload) {
 export async function exportReportPdf(payload: ExportReportPayload) {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
+  const pdfTheme = getPdfReportTheme(payload.pdfTheme);
 
   const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
-  let y = 16;
+  const centerX = pageWidth / 2;
+  const documentTitle = buildDocumentTitle(payload.title);
+  let y = 18;
 
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(payload.title, 14, y);
-  y += 8;
+  doc.setFontSize(15);
+  doc.setTextColor(30, 41, 59);
+  doc.text(documentTitle, centerX, y, { align: "center" });
+  y += 9;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(100);
 
   if (payload.subtitle) {
-    doc.text(payload.subtitle, 14, y);
+    doc.text(payload.subtitle, centerX, y, { align: "center" });
     y += 5;
   }
 
-  doc.text(`Generated: ${new Date().toLocaleString("en-LK")}`, 14, y);
-  y += 8;
+  doc.text(`Generated: ${new Date().toLocaleString("en-LK")}`, centerX, y, {
+    align: "center",
+  });
+  y += 10;
   doc.setTextColor(0);
 
   if (payload.summary?.length) {
@@ -222,7 +300,7 @@ export async function exportReportPdf(payload: ExportReportPayload) {
     doc.text(section.title, 14, y);
     y += 2;
 
-    const { pdfRows } = prepareSectionRows(section);
+    const { pdfRows } = prepareSectionRows(section, pdfTheme);
 
     autoTable(doc, {
       startY: y + 2,
@@ -230,7 +308,11 @@ export async function exportReportPdf(payload: ExportReportPayload) {
       body: pdfRows as unknown as Parameters<typeof autoTable>[1]["body"],
       theme: "grid",
       styles: { fontSize: 8, cellPadding: 2, valign: "middle" },
-      headStyles: { fillColor: [79, 70, 229], textColor: 255, fontStyle: "bold" },
+      headStyles: {
+        fillColor: pdfTheme.header,
+        textColor: 255,
+        fontStyle: "bold",
+      },
       margin: { left: 14, right: 14 },
       tableWidth: pageWidth - 28,
       didParseCell: (hookData) => {
@@ -238,8 +320,8 @@ export async function exportReportPdf(payload: ExportReportPayload) {
         const sourceRow = pdfRows[hookData.row.index];
         if (!sourceRow || !isGrandTotalRow(sourceRow)) return;
 
-        hookData.cell.styles.fillColor = GRAND_TOTAL_FILL;
-        hookData.cell.styles.textColor = GRAND_TOTAL_TEXT;
+        hookData.cell.styles.fillColor = pdfTheme.grandTotalFill;
+        hookData.cell.styles.textColor = pdfTheme.grandTotalText;
         hookData.cell.styles.fontStyle = "bold";
       },
     });

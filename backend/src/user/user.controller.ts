@@ -6,18 +6,64 @@ import {
   Delete,
   Param,
   Body,
+  Req,
   HttpException,
   HttpStatus,
+  UnauthorizedException,
+  ForbiddenException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
 import { UserService } from './user.service';
-import { User } from './user.schema';
+import { User, UserRole } from './user.schema';
+import {
+  canAssignRole,
+  canCreateUsers,
+  canDeleteUser,
+  canUpdateUser,
+} from './user-role.policy';
+
+type Actor = { id: string; role: UserRole };
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  private async getActor(req: Request): Promise<Actor> {
+    const token =
+      req.cookies?.['access_token'] ||
+      req.headers.authorization?.replace('Bearer ', '');
+
+    if (!token) {
+      throw new UnauthorizedException('Not authenticated');
+    }
+
+    try {
+      const decoded = await this.jwtService.verifyAsync(token);
+      return {
+        id: decoded.sub as string,
+        role: decoded.role as UserRole,
+      };
+    } catch {
+      throw new UnauthorizedException('Invalid or expired token');
+    }
+  }
 
   @Post()
-  async createUser(@Body() userData: Partial<User>) {
+  async createUser(@Req() req: Request, @Body() userData: Partial<User>) {
+    const actor = await this.getActor(req);
+
+    if (!canCreateUsers(actor.role)) {
+      throw new ForbiddenException('You do not have permission to create users');
+    }
+
+    if (!userData.role || !canAssignRole(actor.role, userData.role)) {
+      throw new ForbiddenException('You do not have permission to create this role');
+    }
+
     try {
       const created = await this.userService.create(userData);
       return created;
@@ -41,7 +87,22 @@ export class UserController {
   }
 
   @Put(':id')
-  async updateUser(@Param('id') id: string, @Body() updateData: Partial<User>) {
+  async updateUser(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @Body() updateData: Partial<User>,
+  ) {
+    const actor = await this.getActor(req);
+    const target = await this.userService.findById(id);
+
+    if (!canUpdateUser(actor.role, target.role)) {
+      throw new ForbiddenException('You do not have permission to update this user');
+    }
+
+    if (updateData.role && !canAssignRole(actor.role, updateData.role)) {
+      throw new ForbiddenException('You do not have permission to assign this role');
+    }
+
     const updated = await this.userService.update(id, updateData);
     if (!updated) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -50,7 +111,14 @@ export class UserController {
   }
 
   @Delete(':id')
-  async deleteUser(@Param('id') id: string) {
+  async deleteUser(@Req() req: Request, @Param('id') id: string) {
+    const actor = await this.getActor(req);
+    const target = await this.userService.findById(id);
+
+    if (!canDeleteUser(actor.role, target.role, actor.id, id)) {
+      throw new ForbiddenException('You do not have permission to delete this user');
+    }
+
     const deleted = await this.userService.delete(id);
     if (!deleted) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);

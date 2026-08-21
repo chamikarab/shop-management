@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 
 export type UserDocument = User & Document & { _id: string };
 
-export type UserRole = 'admin' | 'cashier' | 'manager';
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'cashier';
 
 export type PermissionType =
   | 'dashboard:access'
@@ -29,7 +29,7 @@ export class User {
   @Prop({ required: true })
   nic: string;
 
-  @Prop({ required: true, enum: ['admin', 'cashier', 'manager'] })
+  @Prop({ required: true, enum: ['super_admin', 'admin', 'manager', 'cashier'] })
   role: UserRole;
 
   @Prop({

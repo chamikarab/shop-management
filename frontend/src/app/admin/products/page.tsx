@@ -33,6 +33,7 @@ function ProductsPage() {
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
   const [sortBy, setSortBy] = useState<keyof Product>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [canAddProduct, setCanAddProduct] = useState(false);
   
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -80,6 +81,17 @@ function ProductsPage() {
 
   useEffect(() => {
     fetchProducts();
+    const fetchPermissions = async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        setCanAddProduct(data?.user?.permissions?.includes("products:add") ?? false);
+      } catch {
+        setCanAddProduct(false);
+      }
+    };
+    fetchPermissions();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -223,6 +235,7 @@ function ProductsPage() {
         </div>
           </div>
 
+          {canAddProduct && (
           <div className="flex flex-col items-start lg:items-end gap-6">
           <Link
             href="/admin/products/add"
@@ -234,6 +247,7 @@ function ProductsPage() {
               <span className="text-sm font-black text-slate-900 uppercase tracking-widest">Register New SKU</span>
           </Link>
           </div>
+          )}
         </div>
       </div>
 

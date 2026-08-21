@@ -92,6 +92,7 @@ export default function ReportsOverviewPage() {
     () => ({
       title: "Reports Overview",
       subtitle: getFilterSubtitle(filters),
+      pdfTheme: "overview",
       filename: buildExportFilename("reports-overview"),
       sections: [
         {

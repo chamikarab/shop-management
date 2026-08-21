@@ -9,12 +9,17 @@ import { buildExportFilename, type ExportReportPayload } from "@/lib/exportRepor
 import {
   DEFAULT_REPORT_FILTERS,
   buildDailySalesSummary,
+  fetchExpenses,
   fetchFullReportData,
   filterCategorySizeRows,
+  filterDailyExpensesForRange,
   formatCurrency,
+  formatDate,
   formatReportPeriod,
   resolveReportDateRange,
   sumDailySalesSummary,
+  sumExpenses,
+  type Expense,
   type Order,
   type Product,
   type Purchase,
@@ -31,14 +36,16 @@ export default function DailySalesSummaryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [filters, setFilters] = useState<ReportFiltersState>(PAGE_DEFAULT_FILTERS);
 
   useEffect(() => {
-    fetchFullReportData()
-      .then((data) => {
+    Promise.all([fetchFullReportData(), fetchExpenses()])
+      .then(([data, expenseData]) => {
         setProducts(data.products);
         setOrders(data.orders);
         setPurchases(data.purchases);
+        setExpenses(expenseData);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -47,6 +54,9 @@ export default function DailySalesSummaryPage() {
   const periodLabel = useMemo(
     () => formatReportPeriod(dateRange, filters.datePreset),
     [dateRange, filters.datePreset]
+  );
+  const showExpenseDate = Boolean(
+    dateRange.start && dateRange.end && dateRange.start !== dateRange.end
   );
 
   const rows = useMemo(
@@ -64,10 +74,23 @@ export default function DailySalesSummaryPage() {
     [filteredRows]
   );
 
+  const periodExpenses = useMemo(
+    () => filterDailyExpensesForRange(expenses, dateRange),
+    [expenses, dateRange]
+  );
+
+  const expensesTotal = useMemo(
+    () => sumExpenses(periodExpenses),
+    [periodExpenses]
+  );
+
+  const netTotal = grandTotal.totalValue - expensesTotal;
+
   const exportPayload: ExportReportPayload = useMemo(
     () => ({
       title: "Daily Sales Summary",
       subtitle: periodLabel,
+      pdfTheme: "dailySales",
       filename: buildExportFilename(
         `daily-sales-summary-${dateRange.start || "all"}${dateRange.end && dateRange.end !== dateRange.start ? `-to-${dateRange.end}` : ""}`
       ),
@@ -75,7 +98,8 @@ export default function DailySalesSummaryPage() {
         { label: "Period", value: periodLabel },
         { label: "Total Sales Qty", value: String(grandTotal.salesStock) },
         { label: "Total Sales Value", value: formatCurrency(grandTotal.totalValue) },
-        { label: "Total In Hand", value: String(grandTotal.inHandStock) },
+        { label: "Total Expenses", value: formatCurrency(expensesTotal) },
+        { label: "Net Total", value: formatCurrency(netTotal) },
       ],
       sections: [
         {
@@ -117,9 +141,48 @@ export default function DailySalesSummaryPage() {
           ],
           mergeCategoryColumn: true,
         },
+        {
+          title: "Daily Expenses",
+          headers: showExpenseDate
+            ? ["Date", "Title", "Category", "Amount"]
+            : ["Title", "Category", "Amount"],
+          rows: [
+            ...periodExpenses.map((expense) =>
+              showExpenseDate
+                ? [
+                    formatDate(expense.expenseDate),
+                    expense.title,
+                    expense.category,
+                    formatCurrency(expense.amount),
+                  ]
+                : [expense.title, expense.category, formatCurrency(expense.amount)]
+            ),
+            showExpenseDate
+              ? ["Grand Total", "", "", formatCurrency(expensesTotal)]
+              : ["Grand Total", "", formatCurrency(expensesTotal)],
+          ],
+        },
+        {
+          title: "Daily Summary",
+          headers: ["Item", "Amount"],
+          rows: [
+            ["Sales Value", formatCurrency(grandTotal.totalValue)],
+            ["Expenses", formatCurrency(expensesTotal)],
+            ["Grand Total (Net)", formatCurrency(netTotal)],
+          ],
+        },
       ],
     }),
-    [filteredRows, grandTotal, periodLabel, dateRange]
+    [
+      filteredRows,
+      grandTotal,
+      periodLabel,
+      dateRange,
+      periodExpenses,
+      expensesTotal,
+      netTotal,
+      showExpenseDate,
+    ]
   );
 
   if (loading) return <BeerLoader />;
@@ -136,7 +199,7 @@ export default function DailySalesSummaryPage() {
               Daily Sales Summary
             </h1>
             <p className="text-slate-500 font-medium mt-1">
-              Stock movement and sales by category & size — {periodLabel}
+              Sales, stock movement & daily expenses — {periodLabel}
             </p>
           </div>
           <ReportExportButtons payload={exportPayload} />
@@ -182,12 +245,18 @@ export default function DailySalesSummaryPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {[
-          { label: "Total Sales Qty", value: String(grandTotal.salesStock) },
-          { label: "Total Sales Value", value: formatCurrency(grandTotal.totalValue) },
-          { label: "Purchase Stock", value: String(grandTotal.purchaseStock) },
-          { label: "In Hand Stock", value: String(grandTotal.inHandStock) },
+          { label: "Total Sales Qty", value: String(grandTotal.salesStock), color: "text-slate-900" },
+          { label: "Total Sales Value", value: formatCurrency(grandTotal.totalValue), color: "text-indigo-600" },
+          { label: "Purchase Stock", value: String(grandTotal.purchaseStock), color: "text-slate-900" },
+          { label: "In Hand Stock", value: String(grandTotal.inHandStock), color: "text-emerald-600" },
+          { label: "Total Expenses", value: formatCurrency(expensesTotal), color: "text-rose-600" },
+          {
+            label: "Net Total",
+            value: formatCurrency(netTotal),
+            color: netTotal >= 0 ? "text-violet-600" : "text-rose-700",
+          },
         ].map((item) => (
           <div
             key={item.label}
@@ -196,12 +265,15 @@ export default function DailySalesSummaryPage() {
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
               {item.label}
             </p>
-            <p className="text-xl sm:text-2xl font-black text-slate-900">{item.value}</p>
+            <p className={`text-xl sm:text-2xl font-black ${item.color}`}>{item.value}</p>
           </div>
         ))}
       </div>
 
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">Sales by Category & Size</h2>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[960px]">
             <thead>
@@ -221,7 +293,7 @@ export default function DailySalesSummaryPage() {
               {filteredRows.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-6 py-12 text-center text-slate-400">
-                    No data for the selected period and filters.
+                    No sales data for the selected period and filters.
                   </td>
                 </tr>
               ) : (
@@ -251,7 +323,7 @@ export default function DailySalesSummaryPage() {
               <tfoot>
                 <tr className="bg-indigo-50 font-black text-slate-900 border-t-2 border-indigo-100">
                   <td colSpan={2} className="px-4 py-4 uppercase text-[10px] tracking-widest">
-                    Grand Total
+                    Sales Grand Total
                   </td>
                   <td className="px-4 py-4 text-right">{grandTotal.openingStock}</td>
                   <td className="px-4 py-4 text-right">{grandTotal.purchaseStock}</td>
@@ -270,6 +342,98 @@ export default function DailySalesSummaryPage() {
               </tfoot>
             )}
           </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">Daily Expenses — {periodLabel}</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Variable costs recorded on the Daily Expenses page
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/80">
+                {showExpenseDate && <th className="px-6 py-4">Date</th>}
+                <th className="px-6 py-4">Title</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {periodExpenses.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={showExpenseDate ? 4 : 3}
+                    className="px-6 py-12 text-center text-slate-400"
+                  >
+                    No expenses recorded for this period.
+                  </td>
+                </tr>
+              ) : (
+                periodExpenses.map((expense) => (
+                  <tr
+                    key={expense._id}
+                    className="border-b border-slate-50 hover:bg-slate-50/50"
+                  >
+                    {showExpenseDate && (
+                      <td className="px-6 py-4 font-medium text-slate-600">
+                        {formatDate(expense.expenseDate)}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 font-bold text-slate-900">{expense.title}</td>
+                    <td className="px-6 py-4 text-slate-600">{expense.category}</td>
+                    <td className="px-6 py-4 text-right font-bold text-rose-600">
+                      {formatCurrency(expense.amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {periodExpenses.length > 0 && (
+              <tfoot>
+                <tr className="bg-rose-50 font-black text-slate-900 border-t-2 border-rose-100">
+                  <td
+                    colSpan={showExpenseDate ? 3 : 2}
+                    className="px-6 py-4 uppercase text-[10px] tracking-widest"
+                  >
+                    Expenses Grand Total
+                  </td>
+                  <td className="px-6 py-4 text-right text-rose-700">
+                    {formatCurrency(expensesTotal)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">Daily Summary</h2>
+        </div>
+        <div className="grid sm:grid-cols-3 gap-px bg-slate-100">
+          {[
+            { label: "Sales Value", value: grandTotal.totalValue, color: "text-indigo-600" },
+            { label: "Expenses", value: expensesTotal, color: "text-rose-600" },
+            {
+              label: "Grand Total (Net)",
+              value: netTotal,
+              color: netTotal >= 0 ? "text-emerald-600" : "text-rose-700",
+            },
+          ].map((item) => (
+            <div key={item.label} className="bg-white p-6">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                {item.label}
+              </p>
+              <p className={`text-2xl font-black ${item.color}`}>
+                {formatCurrency(item.value)}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </div>

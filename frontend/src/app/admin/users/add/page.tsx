@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import Link from "next/link";
@@ -10,13 +10,15 @@ import {
 } from "react-icons/fa";
 import BeerLoader from "@/components/BeerLoader";
 import WithPermission from "@/components/WithPermission";
+import { formatRoleLabel, getRoleColor, getRoleGradient, canCreateUsers, getCreatableRoles } from "@/lib/roles";
 
 function AddUserForm() {
   const [loading, setLoading] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
   type PermissionKey = 
     | "dashboard:access"
@@ -45,6 +47,34 @@ function AddUserForm() {
     "users:add": false,
     "orders:view": false,
   });
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) {
+          router.push("/unauthorized");
+          return;
+        }
+        const data = await res.json();
+        const role = data?.user?.role;
+        setCurrentUserRole(role || null);
+        if (!canCreateUsers(role)) {
+          router.push("/unauthorized");
+        }
+      } catch {
+        router.push("/unauthorized");
+      } finally {
+        setCheckingAccess(false);
+      }
+    };
+    checkAccess();
+  }, [router]);
+
+  const creatableRoles = useMemo(
+    () => getCreatableRoles(currentUserRole || undefined),
+    [currentUserRole]
+  );
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -89,30 +119,25 @@ function AddUserForm() {
     };
 
     try {
-      const res = await fetch(`${apiUrl}/users`, {
+      const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(submitData),
       });
 
-      if (!res.ok) throw new Error("Failed to add user");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to add user");
+      }
 
       toast.success("User successfully deployed to system!");
       router.push("/admin/users");
     } catch (err) {
       console.error(err);
-      toast.error("An error occurred during user creation.");
+      toast.error(err instanceof Error ? err.message : "An error occurred during user creation.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const getRoleColor = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin": return "bg-purple-50 text-purple-600 border-purple-100";
-      case "manager": return "bg-indigo-50 text-indigo-600 border-indigo-100";
-      case "cashier": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      default: return "bg-slate-50 text-slate-600 border-slate-100";
     }
   };
 
@@ -129,14 +154,9 @@ function AddUserForm() {
     }
   };
 
-  const getRoleGradient = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin": return "from-purple-500/20 via-indigo-500/10 to-transparent";
-      case "manager": return "from-indigo-500/20 via-blue-500/10 to-transparent";
-      case "cashier": return "from-emerald-500/20 via-teal-500/10 to-transparent";
-      default: return "from-slate-500/10 via-slate-400/5 to-transparent";
-    }
-  };
+  if (checkingAccess) {
+    return <BeerLoader />;
+  }
 
   return (
     <>
@@ -327,9 +347,11 @@ function AddUserForm() {
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 transition-all text-slate-800 font-bold appearance-none cursor-pointer"
                     >
                 <option value="">Select Role</option>
-                <option value="admin">Admin</option>
-                      <option value="manager">Manager</option>
-                <option value="cashier">Cashier</option>
+                {creatableRoles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
               </select>
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
@@ -441,7 +463,7 @@ function AddUserForm() {
                     <div className="px-4 py-2 bg-white/90 backdrop-blur-xl rounded-2xl border border-white shadow-xl ring-1 ring-slate-100 flex items-center gap-3">
                       <div className={`w-2 h-2 rounded-full animate-pulse ${getRoleColor(formData.role).split(" ")[0].replace("-50", "-500")}`} />
                       <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${getRoleColor(formData.role).split(" ")[1]}`}>
-                        {formData.role} System Access
+                        {formatRoleLabel(formData.role)} System Access
                       </span>
                     </div>
                   )}
