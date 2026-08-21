@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
+import { USER_ROLES, formatRoleLabel, getRoleColor } from "@/lib/roles";
 
 type User = {
   _id: string;
@@ -19,7 +20,7 @@ type User = {
   createdAt: string;
 };
 
-const roles = ["admin", "manager", "cashier"];
+const roles = USER_ROLES.map((r) => r.value);
 
 function AllUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -67,11 +68,12 @@ function AllUsersPage() {
   // Stats calculation
   const stats = useMemo(() => {
     const totalUsers = users.length;
-    const adminCount = users.filter(u => u.role === "admin").length;
-    const managerCount = users.filter(u => u.role === "manager").length;
-    const cashierCount = users.filter(u => u.role === "cashier").length;
+    const superAdminCount = users.filter((u) => u.role === "super_admin").length;
+    const adminCount = users.filter((u) => u.role === "admin").length;
+    const managerCount = users.filter((u) => u.role === "manager").length;
+    const cashierCount = users.filter((u) => u.role === "cashier").length;
     
-    return { totalUsers, adminCount, managerCount, cashierCount };
+    return { totalUsers, superAdminCount, adminCount, managerCount, cashierCount };
   }, [users]);
 
   // Filter and Sort users
@@ -178,14 +180,7 @@ function AllUsersPage() {
     "orders:view",
   ];
 
-  const getRoleColor = (role: string) => {
-    switch (role.toLowerCase()) {
-      case "admin": return "bg-purple-50 text-purple-600 border-purple-100";
-      case "manager": return "bg-indigo-50 text-indigo-600 border-indigo-100";
-      case "cashier": return "bg-emerald-50 text-emerald-600 border-emerald-100";
-      default: return "bg-slate-50 text-slate-600 border-slate-100";
-    }
-  };
+  const getRoleBadgeColor = (role: string) => getRoleColor(role);
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 space-y-10 bg-[#f8fafc]">
@@ -229,7 +224,7 @@ function AllUsersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div className="modern-card group flex items-center gap-6 border-l-4 border-indigo-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
           <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500">
             <FaUsers size={28} />
@@ -237,6 +232,15 @@ function AllUsersPage() {
           <div>
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Total Users</p>
             <p className="text-3xl font-black text-slate-900">{stats.totalUsers}</p>
+          </div>
+        </div>
+        <div className="modern-card group flex items-center gap-6 border-l-4 border-rose-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
+          <div className="p-4 bg-rose-50 rounded-2xl text-rose-600 group-hover:bg-rose-600 group-hover:text-white transition-colors duration-500">
+            <FaUserShield size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Super Admins</p>
+            <p className="text-3xl font-black text-slate-900">{stats.superAdminCount}</p>
           </div>
         </div>
         <div className="modern-card group flex items-center gap-6 border-l-4 border-purple-500 hover:scale-[1.02] transition-all duration-500 shadow-xl shadow-slate-200/50 border border-slate-100">
@@ -292,9 +296,11 @@ function AllUsersPage() {
               className="bg-transparent border-none focus:ring-0 text-sm font-black text-slate-600 uppercase tracking-widest cursor-pointer min-w-[140px]"
             >
               <option value="all">All Roles</option>
-              <option value="admin">Admin Only</option>
-              <option value="manager">Manager Only</option>
-              <option value="cashier">Cashier Only</option>
+              {USER_ROLES.map((role) => (
+                <option key={role.value} value={role.value}>
+                  {role.label} Only
+                </option>
+              ))}
             </select>
           </div>
 
@@ -389,8 +395,8 @@ function AllUsersPage() {
                       <span className="text-slate-600 font-medium">{u.nic}</span>
                   </td>
                     <td className="px-8 py-6 text-center">
-                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getRoleColor(u.role)}`}>
-                      {u.role}
+                      <span className={`inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm ${getRoleBadgeColor(u.role)}`}>
+                      {formatRoleLabel(u.role)}
                     </span>
                   </td>
                     <td className="px-8 py-6 text-center">
@@ -493,7 +499,7 @@ function AllUsersPage() {
                 >
                   {roles.map((r) => (
                     <option key={r} value={r}>
-                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                      {formatRoleLabel(r)}
                     </option>
                   ))}
                 </select>

@@ -24,6 +24,7 @@ import {
   FaCalendarDay,
   FaReceipt,
 } from "react-icons/fa";
+import { formatRoleLabel } from "@/lib/roles";
 import "./styles/admin.css";
 
 type User = {
@@ -375,7 +376,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     {user.name || "Administrator"}
                   </p>
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    {user.role || "Super Admin"}
+                    {formatRoleLabel(user.role)}
                   </p>
                 </div>
               </div>
