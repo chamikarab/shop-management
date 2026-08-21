@@ -13,6 +13,7 @@ const protectedRoutes: Record<string, string> = {
   '/admin/users': 'users:view',
   '/admin/users/add': 'users:add',
   '/admin/orders': 'orders:view',
+  '/admin/reports': 'dashboard:access',
 };
 
 export async function middleware(req: NextRequest) {

@@ -20,6 +20,8 @@ import {
   FaBeer,
   FaPlus,
   FaDollarSign,
+  FaChartBar,
+  FaCalendarDay,
 } from "react-icons/fa";
 import "./styles/admin.css";
 
@@ -160,7 +162,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside
         className={`text-white flex flex-col justify-between transition-all duration-500 ease-in-out z-50 h-screen sticky top-0 ${
-          collapsed ? "w-24" : "w-80"
+          collapsed ? "w-18" : "w-65"
         } ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
       >
         <div className="flex flex-col h-full">
@@ -267,6 +269,62 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 >
                   <FaClipboardList />
                   <span>All Orders</span>
+                </Link>
+              </div>
+            )}
+
+            {/* Reports Section */}
+            {user.permissions?.includes("dashboard:access") && (
+              <div className="sidebar-nav-section">
+                <span className="sidebar-nav-label">Reports & Analytics</span>
+                <Link
+                  href="/admin/reports"
+                  className={`sidebar-link ${pathname.startsWith("/admin/reports") ? "active" : ""}`}
+                >
+                  <FaChartBar />
+                  <span>Reports Hub</span>
+                </Link>
+                <Link
+                  href="/admin/reports/daily-sales-summary"
+                  className={`sidebar-link ${pathname === "/admin/reports/daily-sales-summary" ? "active" : ""}`}
+                >
+                  <FaCalendarDay />
+                  <span>Daily Sales Summary</span>
+                </Link>
+                <Link
+                  href="/admin/reports/pnl"
+                  className={`sidebar-link ${pathname === "/admin/reports/pnl" ? "active" : ""}`}
+                >
+                  <FaChartPie />
+                  <span>P&L Report</span>
+                </Link>
+                <Link
+                  href="/admin/reports/stock-balance"
+                  className={`sidebar-link ${pathname === "/admin/reports/stock-balance" ? "active" : ""}`}
+                >
+                  <FaBox />
+                  <span>Daily Stock Balance</span>
+                </Link>
+                <Link
+                  href="/admin/reports/purchasing"
+                  className={`sidebar-link ${pathname === "/admin/reports/purchasing" ? "active" : ""}`}
+                >
+                  <FaShoppingCart />
+                  <span>Purchasing Report</span>
+                </Link>
+                <Link
+                  href="/admin/reports/sales"
+                  className={`sidebar-link ${pathname === "/admin/reports/sales" ? "active" : ""}`}
+                >
+                  <FaCashRegister />
+                  <span>Sales Report</span>
+                </Link>
+                <Link
+                  href="/admin/reports/top-products"
+                  className={`sidebar-link ${pathname === "/admin/reports/top-products" ? "active" : ""}`}
+                >
+                  <FaListUl />
+                  <span>Top Products</span>
                 </Link>
               </div>
             )}

@@ -147,7 +147,7 @@ function AddProductPageContent() {
                   name="category"
                       value={formData.category}
                       onChange={handleInputChange}
-                      placeholder="e.g. Beverages"
+                      placeholder="e.g. Carlsberg"
                       className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent rounded-[1.5rem] focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-slate-800 font-bold placeholder-slate-300"
                 />
                     <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300">
