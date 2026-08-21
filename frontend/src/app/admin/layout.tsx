@@ -10,7 +10,6 @@ import {
   FaBars,
   FaSignOutAlt,
   FaUserPlus,
-  FaListUl,
   FaShoppingCart,
   FaCashRegister,
   FaHome,
@@ -21,7 +20,6 @@ import {
   FaPlus,
   FaDollarSign,
   FaChartBar,
-  FaCalendarDay,
   FaReceipt,
 } from "react-icons/fa";
 import { formatRoleLabel } from "@/lib/roles";
@@ -292,48 +290,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 >
                   <FaChartBar />
                   <span>Reports Hub</span>
-                </Link>
-                <Link
-                  href="/admin/reports/daily-sales-summary"
-                  className={`sidebar-link ${pathname === "/admin/reports/daily-sales-summary" ? "active" : ""}`}
-                >
-                  <FaCalendarDay />
-                  <span>Daily Sales Summary</span>
-                </Link>
-                <Link
-                  href="/admin/reports/pnl"
-                  className={`sidebar-link ${pathname === "/admin/reports/pnl" ? "active" : ""}`}
-                >
-                  <FaChartPie />
-                  <span>Monthly P&L</span>
-                </Link>
-                <Link
-                  href="/admin/reports/stock-balance"
-                  className={`sidebar-link ${pathname === "/admin/reports/stock-balance" ? "active" : ""}`}
-                >
-                  <FaBox />
-                  <span>Daily Stock Balance</span>
-                </Link>
-                <Link
-                  href="/admin/reports/purchasing"
-                  className={`sidebar-link ${pathname === "/admin/reports/purchasing" ? "active" : ""}`}
-                >
-                  <FaShoppingCart />
-                  <span>Purchasing Report</span>
-                </Link>
-                <Link
-                  href="/admin/reports/sales"
-                  className={`sidebar-link ${pathname === "/admin/reports/sales" ? "active" : ""}`}
-                >
-                  <FaCashRegister />
-                  <span>Sales Report</span>
-                </Link>
-                <Link
-                  href="/admin/reports/top-products"
-                  className={`sidebar-link ${pathname === "/admin/reports/top-products" ? "active" : ""}`}
-                >
-                  <FaListUl />
-                  <span>Top Products</span>
                 </Link>
               </div>
             )}
