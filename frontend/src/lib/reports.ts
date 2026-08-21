@@ -96,6 +96,35 @@ export type PurchasingReportRow = {
   inventoryCost: number;
 };
 
+export type Expense = {
+  _id: string;
+  title: string;
+  category: string;
+  amount: number;
+  expenseDate: string;
+  notes?: string;
+  isFixed?: boolean;
+  effectiveFrom?: string;
+  createdAt?: string;
+};
+
+export const FIXED_EXPENSE_CATEGORIES = [
+  "Rent",
+  "Utilities",
+  "Salary",
+  "Insurance",
+  "Loan",
+  "Other",
+];
+
+export const DAILY_EXPENSE_CATEGORIES = [
+  "Transport",
+  "Supplies",
+  "Maintenance",
+  "Utilities",
+  "Other",
+];
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export function extractArray<T>(data: unknown): T[] {
@@ -583,6 +612,60 @@ export function formatDate(date: string): string {
     month: "short",
     day: "numeric",
   });
+}
+
+export function formatMonthLabel(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+  if (!year || !month) return monthKey;
+  return new Date(year, month - 1, 1).toLocaleDateString("en-LK", {
+    year: "numeric",
+    month: "long",
+  });
+}
+
+export function currentMonthKey(): string {
+  const today = new Date();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function monthRange(monthKey: string): { start: string; end: string } {
+  const [year, month] = monthKey.split("-").map(Number);
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { start, end };
+}
+
+export function isFixedExpenseActiveInMonth(
+  expense: Expense,
+  monthKey: string
+): boolean {
+  if (!expense.isFixed) return false;
+  const from = (expense.effectiveFrom || expense.expenseDate).slice(0, 7);
+  return Boolean(from && from <= monthKey);
+}
+
+export function sumDailyExpensesForMonth(
+  expenses: Expense[],
+  monthKey: string
+): number {
+  return expenses
+    .filter((e) => !e.isFixed && e.expenseDate.slice(0, 7) === monthKey)
+    .reduce((sum, e) => sum + e.amount, 0);
+}
+
+export function sumFixedExpensesForMonth(
+  expenses: Expense[],
+  monthKey: string
+): number {
+  return expenses
+    .filter((e) => isFixedExpenseActiveInMonth(e, monthKey))
+    .reduce((sum, e) => sum + e.amount, 0);
+}
+
+export async function fetchExpenses(): Promise<Expense[]> {
+  const res = await fetchWithRetry(`${API_URL}/expenses`);
+  return extractArray<Expense>(await res.json());
 }
 
 export function isWithinDateRange(dateStr: string, start: string, end: string): boolean {

@@ -4,7 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { FaPlus, FaReceipt, FaTrash } from "react-icons/fa";
 import BeerLoader from "@/components/BeerLoader";
-import { formatCurrency, todayDateString } from "@/lib/reports";
+import {
+  DAILY_EXPENSE_CATEGORIES,
+  formatCurrency,
+  todayDateString,
+} from "@/lib/reports";
 
 type Expense = {
   _id: string;
@@ -13,18 +17,9 @@ type Expense = {
   amount: number;
   expenseDate: string;
   notes?: string;
+  isFixed?: boolean;
   createdAt?: string;
 };
-
-const EXPENSE_CATEGORIES = [
-  "Rent",
-  "Utilities",
-  "Salary",
-  "Transport",
-  "Supplies",
-  "Maintenance",
-  "Other",
-];
 
 const emptyForm = () => ({
   title: "",
@@ -51,7 +46,8 @@ export default function DailyExpensesPage() {
       });
       if (!res.ok) throw new Error("Failed to load expenses");
       const data = await res.json();
-      setExpenses(Array.isArray(data) ? data : data.data || []);
+      const all: Expense[] = Array.isArray(data) ? data : data.data || [];
+      setExpenses(all.filter((e) => !e.isFixed));
     } catch (error) {
       console.error(error);
       toast.error("Failed to load expenses");
@@ -104,6 +100,7 @@ export default function DailyExpensesPage() {
           amount,
           expenseDate: form.expenseDate,
           notes: form.notes.trim() || undefined,
+          isFixed: false,
         }),
       });
 
@@ -150,7 +147,11 @@ export default function DailyExpensesPage() {
           Daily Expenses
         </h1>
         <p className="text-slate-500 font-medium mt-1">
-          Record and track shop expenses by day
+          Record day-to-day variable costs. For rent, salary, and other fixed monthly costs, use{" "}
+          <a href="/admin/reports/pnl" className="text-indigo-600 font-bold hover:underline">
+            Monthly P&L
+          </a>
+          .
         </p>
       </header>
 
@@ -158,7 +159,7 @@ export default function DailyExpensesPage() {
         {[
           { label: "Today's Expenses", value: formatCurrency(totals.dayTotal) },
           { label: "Entries Today", value: String(totals.count) },
-          { label: "This Month", value: formatCurrency(totals.monthTotal) },
+          { label: "This Month (daily only)", value: formatCurrency(totals.monthTotal) },
         ].map((item) => (
           <div
             key={item.label}
@@ -179,7 +180,7 @@ export default function DailyExpensesPage() {
         >
           <div className="flex items-center gap-2 mb-2">
             <FaPlus className="text-indigo-600" />
-            <h2 className="text-lg font-black text-slate-900">Add Expense</h2>
+            <h2 className="text-lg font-black text-slate-900">Add Daily Expense</h2>
           </div>
 
           <div>
@@ -188,7 +189,7 @@ export default function DailyExpensesPage() {
               type="text"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              placeholder="e.g. Electricity bill"
+              placeholder="e.g. Delivery fuel"
               className={inputClass}
             />
           </div>
@@ -200,7 +201,7 @@ export default function DailyExpensesPage() {
               onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
               className={inputClass}
             >
-              {EXPENSE_CATEGORIES.map((cat) => (
+              {DAILY_EXPENSE_CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>
@@ -283,7 +284,7 @@ export default function DailyExpensesPage() {
                 {filteredExpenses.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
-                      No expenses recorded for this date.
+                      No daily expenses recorded for this date.
                     </td>
                   </tr>
                 ) : (

@@ -304,7 +304,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   className={`sidebar-link ${pathname === "/admin/reports/pnl" ? "active" : ""}`}
                 >
                   <FaChartPie />
-                  <span>P&L Report</span>
+                  <span>Monthly P&L</span>
                 </Link>
                 <Link
                   href="/admin/reports/stock-balance"

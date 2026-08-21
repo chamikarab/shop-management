@@ -15,7 +15,7 @@ import {
 const tabs = [
   { href: "/admin/reports", label: "Overview", icon: FaChartBar, exact: true },
   { href: "/admin/reports/daily-sales-summary", label: "Daily Sales", icon: FaCalendarDay },
-  { href: "/admin/reports/pnl", label: "P&L", icon: FaChartLine },
+  { href: "/admin/reports/pnl", label: "Monthly P&L", icon: FaChartLine },
   { href: "/admin/reports/stock-balance", label: "Daily Stock", icon: FaBoxes },
   { href: "/admin/reports/purchasing", label: "Purchasing", icon: FaShoppingCart },
   { href: "/admin/reports/sales", label: "Sales", icon: FaReceipt },
