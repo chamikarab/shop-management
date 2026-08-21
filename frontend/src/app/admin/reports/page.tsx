@@ -125,8 +125,8 @@ export default function ReportsOverviewPage() {
     },
     {
       href: "/admin/reports/pnl",
-      title: "Profit & Loss",
-      desc: "Revenue, COGS, gross profit & margins",
+      title: "Monthly P&L",
+      desc: "Revenue, expenses, gross & net profit by month",
       icon: FaChartLine,
       color: "from-emerald-500 to-teal-600",
       stat: formatCurrency(metrics.revenue),

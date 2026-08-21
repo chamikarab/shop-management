@@ -22,6 +22,7 @@ import {
   FaDollarSign,
   FaChartBar,
   FaCalendarDay,
+  FaReceipt,
 } from "react-icons/fa";
 import "./styles/admin.css";
 
@@ -214,6 +215,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <FaChartPie />
                 <span>Overview</span>
               </Link>
+              <Link
+                href="/admin/expenses"
+                className={`sidebar-link ${pathname === "/admin/expenses" ? "active" : ""}`}
+              >
+                <FaReceipt />
+                <span>Daily Expenses</span>
+              </Link>
             </div>
 
             {/* Inventory Section */}
@@ -296,7 +304,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   className={`sidebar-link ${pathname === "/admin/reports/pnl" ? "active" : ""}`}
                 >
                   <FaChartPie />
-                  <span>P&L Report</span>
+                  <span>Monthly P&L</span>
                 </Link>
                 <Link
                   href="/admin/reports/stock-balance"
