@@ -92,6 +92,7 @@ export default function StockBalanceReportPage() {
     () => ({
       title: "Daily Stock Balance Report",
       subtitle: periodLabel,
+      pdfTheme: "dailyStock",
       filename: buildExportFilename(
         `stock-balance-${dateRange.start || "all"}${dateRange.end && dateRange.end !== dateRange.start ? `-to-${dateRange.end}` : ""}`
       ),

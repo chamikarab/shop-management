@@ -207,6 +207,7 @@ export default function MonthlyPnlPage() {
     () => ({
       title: "Monthly P&L Report",
       subtitle: formatMonthLabel(reportMonth),
+      pdfTheme: "monthlyPnl",
       filename: buildExportFilename(`monthly-pnl-${reportMonth}`),
       summary: [
         { label: "Month", value: formatMonthLabel(reportMonth) },

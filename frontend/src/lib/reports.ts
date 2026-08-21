@@ -654,6 +654,23 @@ export function sumDailyExpensesForMonth(
     .reduce((sum, e) => sum + e.amount, 0);
 }
 
+export function filterDailyExpensesForRange(
+  expenses: Expense[],
+  range: { start: string; end: string }
+): Expense[] {
+  return expenses
+    .filter((e) => !e.isFixed)
+    .filter((e) => isWithinDateRange(e.expenseDate, range.start, range.end))
+    .sort(
+      (a, b) =>
+        b.expenseDate.localeCompare(a.expenseDate) || a.title.localeCompare(b.title)
+    );
+}
+
+export function sumExpenses(expenses: Expense[]): number {
+  return expenses.reduce((sum, e) => sum + e.amount, 0);
+}
+
 export function sumFixedExpensesForMonth(
   expenses: Expense[],
   monthKey: string

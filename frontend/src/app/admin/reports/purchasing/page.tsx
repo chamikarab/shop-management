@@ -67,6 +67,7 @@ export default function PurchasingReportPage() {
     () => ({
       title: "Purchasing Report",
       subtitle: reportSubtitle,
+      pdfTheme: "purchasing",
       filename: buildExportFilename(
         `purchasing-report-${dateRange.start || "all"}${dateRange.end && dateRange.end !== dateRange.start ? `-to-${dateRange.end}` : ""}`
       ),
