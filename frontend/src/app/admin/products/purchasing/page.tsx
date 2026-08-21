@@ -17,6 +17,7 @@ import {
 
 import WithPermission from "@/components/WithPermission";
 import BeerLoader from "@/components/BeerLoader";
+import { todayDateString } from "@/lib/reports";
 
 type Product = {
   _id: string;
@@ -46,9 +47,7 @@ function PurchasingPage() {
   ]);
   const [supplierName, setSupplierName] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
-  const [purchaseDate, setPurchaseDate] = useState<string>(() =>
-    new Date().toISOString().slice(0, 10)
-  );
+  const [purchaseDate, setPurchaseDate] = useState<string>(() => todayDateString());
   const [notes, setNotes] = useState("");
 
   const [loading, setLoading] = useState(true);
@@ -185,7 +184,7 @@ function PurchasingPage() {
     setItems([{ id: "row-1", productId: "", quantity: 0, unitCost: 0 }]);
     setSupplierName("");
     setInvoiceNumber("");
-    setPurchaseDate(new Date().toISOString().slice(0, 10));
+    setPurchaseDate(todayDateString());
     setNotes("");
   };
 
@@ -210,25 +209,33 @@ function PurchasingPage() {
     setSaving(true);
 
     try {
-      // Each row increments stock of selected product.
-      for (const row of validItems) {
-        const product = products.find((p) => p._id === row.productId);
-        if (!product) continue;
+      const payload = {
+        supplierName: supplierName.trim(),
+        invoiceNumber: invoiceNumber.trim() || undefined,
+        purchaseDate,
+        notes: notes.trim() || undefined,
+        items: validItems.map((row) => {
+          const product = products.find((p) => p._id === row.productId);
+          return {
+            productId: row.productId,
+            name: product?.name || "Unknown",
+            quantity: row.quantity,
+            unitCost: row.unitCost,
+          };
+        }),
+        totalWithoutVat: grandTotalWithoutVat,
+        totalWithVat: grandTotalWithVat,
+      };
 
-        const updated: Partial<Product> = {
-          stock: product.stock + row.quantity,
-          status: product.stock + row.quantity > 0 ? "Available" : "Out of Stock",
-        };
+      const res = await fetch(`${apiUrl}/purchases`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
 
-        const res = await fetch(`${apiUrl}/products/${product._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updated),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to update stock for ${product.name}`);
-        }
+      if (!res.ok) {
+        throw new Error("Failed to record purchase");
       }
 
       const elapsed = Date.now() - startTime;
@@ -241,8 +248,8 @@ function PurchasingPage() {
       resetForm();
 
       // Refresh product list
-      const res = await fetch(`${apiUrl}/products`, { cache: "no-store" });
-      const data = await res.json();
+      const productsRes = await fetch(`${apiUrl}/products`, { cache: "no-store" });
+      const data = await productsRes.json();
       setProducts(data);
     } catch (error: any) {
       console.error(error);
