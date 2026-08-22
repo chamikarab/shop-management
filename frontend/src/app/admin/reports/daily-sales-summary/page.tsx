@@ -16,9 +16,13 @@ import {
   formatCurrency,
   formatDate,
   formatReportPeriod,
+  getFreeItemsInRange,
+  getOrderDiscountsInRange,
   resolveReportDateRange,
   sumDailySalesSummary,
+  sumDiscountsInRange,
   sumExpenses,
+  sumFreeItemsExpense,
   type Expense,
   type Order,
   type Product,
@@ -79,12 +83,35 @@ export default function DailySalesSummaryPage() {
     [expenses, dateRange]
   );
 
-  const expensesTotal = useMemo(
+  const freeItemExpenses = useMemo(
+    () => getFreeItemsInRange(orders, products, dateRange),
+    [orders, products, dateRange]
+  );
+
+  const recordedExpensesTotal = useMemo(
     () => sumExpenses(periodExpenses),
     [periodExpenses]
   );
 
-  const netTotal = grandTotal.totalValue - expensesTotal;
+  const freeItemsExpenseTotal = useMemo(
+    () => sumFreeItemsExpense(orders, products, dateRange),
+    [orders, products, dateRange]
+  );
+
+  const discountSummary = useMemo(
+    () => sumDiscountsInRange(orders, dateRange),
+    [orders, dateRange]
+  );
+
+  const discountRows = useMemo(
+    () => getOrderDiscountsInRange(orders, dateRange),
+    [orders, dateRange]
+  );
+
+  const expensesTotal = recordedExpensesTotal + freeItemsExpenseTotal;
+
+  const netTotal =
+    grandTotal.grossValue - discountSummary.totalDiscount - expensesTotal;
 
   const exportPayload: ExportReportPayload = useMemo(
     () => ({
@@ -97,9 +124,30 @@ export default function DailySalesSummaryPage() {
       summary: [
         { label: "Period", value: periodLabel },
         { label: "Total Sales Qty", value: String(grandTotal.salesStock) },
-        { label: "Total Sales Value", value: formatCurrency(grandTotal.totalValue) },
-        { label: "Total Expenses", value: formatCurrency(expensesTotal) },
-        { label: "Net Total", value: formatCurrency(netTotal) },
+        {
+          label: "Total Value",
+          value: formatCurrency(grandTotal.grossValue),
+          highlight: true,
+        },
+        {
+          label: "Total Discounts",
+          value: formatCurrency(discountSummary.totalDiscount),
+          highlight: true,
+        },
+        {
+          label: "Total Expenses",
+          value: formatCurrency(expensesTotal),
+          highlight: true,
+        },
+        {
+          label: "Free Items Expense",
+          value: formatCurrency(freeItemsExpenseTotal),
+        },
+        {
+          label: "Net Total",
+          value: formatCurrency(netTotal),
+          highlight: true,
+        },
       ],
       sections: [
         {
@@ -112,8 +160,8 @@ export default function DailySalesSummaryPage() {
             "Total Stock",
             "Sales Stock",
             "In Hand Stock",
-            "Unit Price",
-            "Total Value",
+            "Selling Price",
+            "Gross Value",
           ],
           rows: [
             ...filteredRows.map((row) => [
@@ -124,8 +172,8 @@ export default function DailySalesSummaryPage() {
               row.totalStock,
               row.salesStock,
               row.inHandStock,
-              formatCurrency(row.unitPrice),
-              formatCurrency(row.totalValue),
+              formatCurrency(row.sellingPrice),
+              formatCurrency(row.grossValue),
             ]),
             [
               "Grand Total",
@@ -136,7 +184,7 @@ export default function DailySalesSummaryPage() {
               grandTotal.salesStock,
               grandTotal.inHandStock,
               "",
-              formatCurrency(grandTotal.totalValue),
+              formatCurrency(grandTotal.grossValue),
             ],
           ],
           mergeCategoryColumn: true,
@@ -158,17 +206,87 @@ export default function DailySalesSummaryPage() {
                 : [expense.title, expense.category, formatCurrency(expense.amount)]
             ),
             showExpenseDate
-              ? ["Grand Total", "", "", formatCurrency(expensesTotal)]
-              : ["Grand Total", "", formatCurrency(expensesTotal)],
+              ? ["Grand Total", "", "", formatCurrency(recordedExpensesTotal)]
+              : ["Grand Total", "", formatCurrency(recordedExpensesTotal)],
+          ],
+        },
+        {
+          title: "Free Items",
+          headers: showExpenseDate
+            ? ["Date", "Product", "Qty", "Selling Price", "Amount"]
+            : ["Product", "Qty", "Selling Price", "Amount"],
+          rows: [
+            ...freeItemExpenses.map((item) =>
+              showExpenseDate
+                ? [
+                    "—",
+                    item.name,
+                    item.quantity,
+                    formatCurrency(item.sellingPrice),
+                    formatCurrency(item.amount),
+                  ]
+                : [
+                    item.name,
+                    item.quantity,
+                    formatCurrency(item.sellingPrice),
+                    formatCurrency(item.amount),
+                  ]
+            ),
+            showExpenseDate
+              ? ["Grand Total", "", "", "", formatCurrency(freeItemsExpenseTotal)]
+              : ["Grand Total", "", "", formatCurrency(freeItemsExpenseTotal)],
+          ],
+        },
+        {
+          title: "Discounts",
+          headers: showExpenseDate
+            ? ["Date", "Invoice", "Item Discount", "Bill Discount", "Total"]
+            : ["Invoice", "Item Discount", "Bill Discount", "Total"],
+          rows: [
+            ...discountRows.map((row) =>
+              showExpenseDate
+                ? [
+                    formatDate(row.date),
+                    row.invoiceId,
+                    formatCurrency(row.itemDiscount),
+                    formatCurrency(row.billDiscount),
+                    formatCurrency(row.totalDiscount),
+                  ]
+                : [
+                    row.invoiceId,
+                    formatCurrency(row.itemDiscount),
+                    formatCurrency(row.billDiscount),
+                    formatCurrency(row.totalDiscount),
+                  ]
+            ),
+            showExpenseDate
+              ? [
+                  "Grand Total",
+                  "",
+                  formatCurrency(discountSummary.itemDiscount),
+                  formatCurrency(discountSummary.billDiscount),
+                  formatCurrency(discountSummary.totalDiscount),
+                ]
+              : [
+                  "Grand Total",
+                  formatCurrency(discountSummary.itemDiscount),
+                  formatCurrency(discountSummary.billDiscount),
+                  formatCurrency(discountSummary.totalDiscount),
+                ],
           ],
         },
         {
           title: "Daily Summary",
           headers: ["Item", "Amount"],
           rows: [
-            ["Sales Value", formatCurrency(grandTotal.totalValue)],
-            ["Expenses", formatCurrency(expensesTotal)],
-            ["Grand Total (Net)", formatCurrency(netTotal)],
+            ["Total Value", formatCurrency(grandTotal.grossValue)],
+            ["Item Discounts", formatCurrency(discountSummary.itemDiscount)],
+            ["Bill Discounts", formatCurrency(discountSummary.billDiscount)],
+            ["Total Discounts", formatCurrency(discountSummary.totalDiscount)],
+            ["Recorded Expenses", formatCurrency(recordedExpensesTotal)],
+            ["Free Items Expense", formatCurrency(freeItemsExpenseTotal)],
+            ["Total Expenses", formatCurrency(expensesTotal)],
+            ["Net Total", formatCurrency(netTotal)],
           ],
         },
       ],
@@ -179,6 +297,11 @@ export default function DailySalesSummaryPage() {
       periodLabel,
       dateRange,
       periodExpenses,
+      recordedExpensesTotal,
+      freeItemExpenses,
+      freeItemsExpenseTotal,
+      discountSummary,
+      discountRows,
       expensesTotal,
       netTotal,
       showExpenseDate,
@@ -245,13 +368,30 @@ export default function DailySalesSummaryPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4">
         {[
           { label: "Total Sales Qty", value: String(grandTotal.salesStock), color: "text-slate-900" },
-          { label: "Total Sales Value", value: formatCurrency(grandTotal.totalValue), color: "text-indigo-600" },
+          { label: "Total Value", value: formatCurrency(grandTotal.grossValue), color: "text-indigo-600" },
+          {
+            label: "Total Discounts",
+            value: formatCurrency(discountSummary.totalDiscount),
+            color: "text-violet-600",
+            hint:
+              discountSummary.totalDiscount > 0
+                ? `Item ${formatCurrency(discountSummary.itemDiscount)} · Bill ${formatCurrency(discountSummary.billDiscount)}`
+                : undefined,
+          },
           { label: "Purchase Stock", value: String(grandTotal.purchaseStock), color: "text-slate-900" },
           { label: "In Hand Stock", value: String(grandTotal.inHandStock), color: "text-emerald-600" },
-          { label: "Total Expenses", value: formatCurrency(expensesTotal), color: "text-rose-600" },
+          {
+            label: "Total Expenses",
+            value: formatCurrency(expensesTotal),
+            color: "text-rose-600",
+            hint:
+              freeItemsExpenseTotal > 0
+                ? `Includes ${formatCurrency(freeItemsExpenseTotal)} free items`
+                : undefined,
+          },
           {
             label: "Net Total",
             value: formatCurrency(netTotal),
@@ -266,6 +406,9 @@ export default function DailySalesSummaryPage() {
               {item.label}
             </p>
             <p className={`text-xl sm:text-2xl font-black ${item.color}`}>{item.value}</p>
+            {"hint" in item && item.hint ? (
+              <p className="text-[10px] font-bold text-amber-600 mt-1">{item.hint}</p>
+            ) : null}
           </div>
         ))}
       </div>
@@ -285,8 +428,8 @@ export default function DailySalesSummaryPage() {
                 <th className="px-4 py-4 text-right">Total Stock</th>
                 <th className="px-4 py-4 text-right">Sales Stock</th>
                 <th className="px-4 py-4 text-right">In Hand Stock</th>
-                <th className="px-4 py-4 text-right">Unit Price</th>
-                <th className="px-4 py-4 text-right">Total Value</th>
+                <th className="px-4 py-4 text-right">Selling Price</th>
+                <th className="px-4 py-4 text-right">Gross Value</th>
               </tr>
             </thead>
             <tbody>
@@ -311,9 +454,9 @@ export default function DailySalesSummaryPage() {
                       {row.salesStock}
                     </td>
                     <td className="px-4 py-3 text-right text-emerald-600">{row.inHandStock}</td>
-                    <td className="px-4 py-3 text-right">{formatCurrency(row.unitPrice)}</td>
+                    <td className="px-4 py-3 text-right">{formatCurrency(row.sellingPrice)}</td>
                     <td className="px-4 py-3 text-right font-bold">
-                      {formatCurrency(row.totalValue)}
+                      {formatCurrency(row.grossValue)}
                     </td>
                   </tr>
                 ))
@@ -323,7 +466,7 @@ export default function DailySalesSummaryPage() {
               <tfoot>
                 <tr className="bg-indigo-50 font-black text-slate-900 border-t-2 border-indigo-100">
                   <td colSpan={2} className="px-4 py-4 uppercase text-[10px] tracking-widest">
-                    Sales Grand Total
+                    Grand Total
                   </td>
                   <td className="px-4 py-4 text-right">{grandTotal.openingStock}</td>
                   <td className="px-4 py-4 text-right">{grandTotal.purchaseStock}</td>
@@ -336,7 +479,7 @@ export default function DailySalesSummaryPage() {
                   </td>
                   <td className="px-4 py-4 text-right">—</td>
                   <td className="px-4 py-4 text-right text-indigo-700">
-                    {formatCurrency(grandTotal.totalValue)}
+                    {formatCurrency(grandTotal.grossValue)}
                   </td>
                 </tr>
               </tfoot>
@@ -369,7 +512,7 @@ export default function DailySalesSummaryPage() {
                     colSpan={showExpenseDate ? 4 : 3}
                     className="px-6 py-12 text-center text-slate-400"
                   >
-                    No expenses recorded for this period.
+                    No recorded expenses for this period.
                   </td>
                 </tr>
               ) : (
@@ -399,10 +542,162 @@ export default function DailySalesSummaryPage() {
                     colSpan={showExpenseDate ? 3 : 2}
                     className="px-6 py-4 uppercase text-[10px] tracking-widest"
                   >
-                    Expenses Grand Total
+                    Recorded Expenses Total
                   </td>
                   <td className="px-6 py-4 text-right text-rose-700">
-                    {formatCurrency(expensesTotal)}
+                    {formatCurrency(recordedExpensesTotal)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">
+            Free Items — {periodLabel}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Items billed as free, valued at selling price
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/80">
+                {showExpenseDate && <th className="px-6 py-4">Date</th>}
+                <th className="px-6 py-4">Product</th>
+                <th className="px-6 py-4 text-right">Qty</th>
+                <th className="px-6 py-4 text-right">Selling Price</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {freeItemExpenses.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={showExpenseDate ? 5 : 4}
+                    className="px-6 py-12 text-center text-slate-400"
+                  >
+                    No free items for this period.
+                  </td>
+                </tr>
+              ) : (
+                freeItemExpenses.map((item) => (
+                  <tr
+                    key={item.productId || item.name}
+                    className="border-b border-slate-50 hover:bg-slate-50/50"
+                  >
+                    {showExpenseDate && (
+                      <td className="px-6 py-4 font-medium text-slate-600">—</td>
+                    )}
+                    <td className="px-6 py-4 font-bold text-slate-900">{item.name}</td>
+                    <td className="px-6 py-4 text-right font-bold text-slate-700">
+                      {item.quantity}
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(item.sellingPrice)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-amber-600">
+                      {formatCurrency(item.amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {freeItemExpenses.length > 0 && (
+              <tfoot>
+                <tr className="bg-amber-50 font-black text-slate-900 border-t-2 border-amber-100">
+                  <td
+                    colSpan={showExpenseDate ? 4 : 3}
+                    className="px-6 py-4 uppercase text-[10px] tracking-widest"
+                  >
+                    Free Items Expense Total
+                  </td>
+                  <td className="px-6 py-4 text-right text-amber-700">
+                    {formatCurrency(freeItemsExpenseTotal)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">
+            Discounts — {periodLabel}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Item-level and bill-level reductions applied at checkout
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/80">
+                {showExpenseDate && <th className="px-6 py-4">Date</th>}
+                <th className="px-6 py-4">Invoice</th>
+                <th className="px-6 py-4 text-right">Item Discount</th>
+                <th className="px-6 py-4 text-right">Bill Discount</th>
+                <th className="px-6 py-4 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {discountRows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={showExpenseDate ? 5 : 4}
+                    className="px-6 py-12 text-center text-slate-400"
+                  >
+                    No discounts for this period.
+                  </td>
+                </tr>
+              ) : (
+                discountRows.map((row) => (
+                  <tr
+                    key={row.orderId}
+                    className="border-b border-slate-50 hover:bg-slate-50/50"
+                  >
+                    {showExpenseDate && (
+                      <td className="px-6 py-4 font-medium text-slate-600">
+                        {formatDate(row.date)}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 font-bold text-slate-900">{row.invoiceId}</td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(row.itemDiscount)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(row.billDiscount)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-violet-600">
+                      {formatCurrency(row.totalDiscount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {discountRows.length > 0 && (
+              <tfoot>
+                <tr className="bg-violet-50 font-black text-slate-900 border-t-2 border-violet-100">
+                  <td
+                    colSpan={showExpenseDate ? 2 : 1}
+                    className="px-6 py-4 uppercase text-[10px] tracking-widest"
+                  >
+                    Grand Total
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(discountSummary.itemDiscount)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(discountSummary.billDiscount)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(discountSummary.totalDiscount)}
                   </td>
                 </tr>
               </tfoot>
@@ -414,13 +709,45 @@ export default function DailySalesSummaryPage() {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">Daily Summary</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Net = Total Value − Discounts − Expenses (recorded + free items)
+          </p>
         </div>
-        <div className="grid sm:grid-cols-3 gap-px bg-slate-100">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-px bg-slate-100">
           {[
-            { label: "Sales Value", value: grandTotal.totalValue, color: "text-indigo-600" },
-            { label: "Expenses", value: expensesTotal, color: "text-rose-600" },
+            { label: "Total Value", value: grandTotal.grossValue, color: "text-indigo-600" },
             {
-              label: "Grand Total (Net)",
+              label: "Item Discounts",
+              value: discountSummary.itemDiscount,
+              color: "text-violet-600",
+            },
+            {
+              label: "Bill Discounts",
+              value: discountSummary.billDiscount,
+              color: "text-violet-600",
+            },
+            {
+              label: "Total Discounts",
+              value: discountSummary.totalDiscount,
+              color: "text-violet-700",
+            },
+            {
+              label: "Recorded Expenses",
+              value: recordedExpensesTotal,
+              color: "text-rose-600",
+            },
+            {
+              label: "Free Items Expense",
+              value: freeItemsExpenseTotal,
+              color: "text-amber-600",
+            },
+            {
+              label: "Total Expenses",
+              value: expensesTotal,
+              color: "text-rose-700",
+            },
+            {
+              label: "Net Total",
               value: netTotal,
               color: netTotal >= 0 ? "text-emerald-600" : "text-rose-700",
             },
