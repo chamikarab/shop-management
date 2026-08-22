@@ -7,6 +7,7 @@ import BeerLoader from "@/components/BeerLoader";
 import { FaClipboardList, FaBox, FaArrowLeft, FaPrint, FaDownload, FaCheckCircle } from "react-icons/fa";
 import Link from "next/link";
 import Invoice from "@/components/Invoice";
+import { printThermalReceipt, type ThermalReceiptData } from "@/lib/printThermalReceipt";
 
 interface OrderItem {
   productId: string;
@@ -30,8 +31,49 @@ interface Order {
   paymentType: string;
   cashGiven?: number;
   balance?: number;
+  billDiscount?: number;
+  billDiscountIsPercentage?: boolean;
+  billDiscountValue?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+function calculateItemTotal(item: OrderItem): number {
+  if (item.free) return 0;
+  const baseTotal = item.price * item.quantity;
+  if (item.discount) {
+    if (item.discountType === "percentage") {
+      return baseTotal - (baseTotal * item.discount) / 100;
+    }
+    return baseTotal - item.discount * item.quantity;
+  }
+  return baseTotal;
+}
+
+function getGrossLedger(items: OrderItem[]): number {
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+function getItemDiscountTotal(items: OrderItem[]): number {
+  return items.reduce((sum, item) => {
+    const base = item.price * item.quantity;
+    return sum + (base - calculateItemTotal(item));
+  }, 0);
+}
+
+function getItemsSubtotal(items: OrderItem[]): number {
+  return items.reduce((sum, item) => sum + calculateItemTotal(item), 0);
+}
+
+function getBillDiscountValue(order: Order): number {
+  if (order.billDiscountValue != null && order.billDiscountValue > 0) {
+    return order.billDiscountValue;
+  }
+  return Math.max(0, getItemsSubtotal(order.items) - order.total);
+}
+
+function getTotalReductions(order: Order): number {
+  return getItemDiscountTotal(order.items) + getBillDiscountValue(order);
 }
 
 export default function OrderDetailsPage() {
@@ -69,18 +111,6 @@ export default function OrderDetailsPage() {
       });
   }, [id, apiUrl, router]);
 
-  const calculateItemTotal = (item: OrderItem): number => {
-    if (item.free) return 0;
-    const baseTotal = item.price * item.quantity;
-    if (item.discount) {
-      if (item.discountType === "percentage") {
-        return baseTotal - (baseTotal * item.discount) / 100;
-      }
-      return baseTotal - item.discount * item.quantity;
-    }
-    return baseTotal;
-  };
-
   const getPaymentBadgeColor = (paymentType: string) => {
     switch (paymentType.toLowerCase()) {
       case "cash": return "bg-green-50 text-green-700 border-green-100";
@@ -95,6 +125,33 @@ export default function OrderDetailsPage() {
   }
 
   if (!order) return null;
+
+  const grossLedger = getGrossLedger(order.items);
+  const itemDiscountTotal = getItemDiscountTotal(order.items);
+  const billDiscountValue = getBillDiscountValue(order);
+  const totalReductions = getTotalReductions(order);
+
+  const buildOrderReceiptData = (): ThermalReceiptData => ({
+    cart: order.items.map((item) => ({
+      id: item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size,
+      packaging: item.packaging,
+      discount: item.discount,
+      discountType: item.discountType,
+      free: item.free,
+    })),
+    invoiceDate: new Date(order.createdAt).toLocaleString(),
+    invoiceId: order.invoiceId,
+    grandTotal: order.total,
+    cashGiven: order.cashGiven || 0,
+    discountValue: billDiscountValue,
+    balance: order.balance || 0,
+    paymentType: order.paymentType,
+    cashier: "Cashier",
+  });
 
   return (
     <div className="bg-slate-50 p-4 sm:p-6 lg:p-8 animate-in fade-in duration-500">
@@ -122,7 +179,7 @@ export default function OrderDetailsPage() {
           
           <div className="flex items-center gap-3">
             <button
-              onClick={() => window.print()}
+              onClick={() => void printThermalReceipt(buildOrderReceiptData())}
               className="px-6 py-3 bg-white border-2 border-slate-200 text-slate-900 font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all hover:border-indigo-600 hover:text-indigo-600 flex items-center gap-3 shadow-sm"
             >
               <FaPrint size={14} />
@@ -259,7 +316,7 @@ export default function OrderDetailsPage() {
                             </span>
                             <div className="flex gap-2">
                               {item.free && (
-                                <span className="text-[9px] font-black uppercase text-white bg-emerald-500 px-2 py-0.5 rounded shadow-sm">Promotional Free</span>
+                                <span className="text-[9px] font-black uppercase text-white bg-emerald-500 px-2 py-0.5 rounded shadow-sm">Free</span>
                               )}
                               {item.discount && (
                                 <span className="text-[9px] font-black uppercase text-white bg-amber-500 px-2 py-0.5 rounded shadow-sm">
@@ -301,16 +358,34 @@ export default function OrderDetailsPage() {
                     <div className="flex justify-between items-center text-slate-400">
                       <span className="text-xs font-bold uppercase tracking-widest">Gross Ledger</span>
                       <span className="text-sm font-black text-white">
-                        Rs.{order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}
+                        Rs.{grossLedger.toFixed(2)}
                       </span>
                     </div>
+                    {itemDiscountTotal > 0 && (
+                      <div className="flex justify-between items-center text-amber-300">
+                        <span className="text-xs font-bold uppercase tracking-widest">Item Discounts</span>
+                        <span className="text-sm font-black">
+                          -Rs.{itemDiscountTotal.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {billDiscountValue > 0 && (
+                      <div className="flex justify-between items-center text-amber-300">
+                        <span className="text-xs font-bold uppercase tracking-widest">
+                          Bill Discount
+                          {order.billDiscount
+                            ? ` (${order.billDiscount}${order.billDiscountIsPercentage ? "%" : " Rs."})`
+                            : ""}
+                        </span>
+                        <span className="text-sm font-black">
+                          -Rs.{billDiscountValue.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center text-amber-400">
                       <span className="text-xs font-bold uppercase tracking-widest">Total Reductions</span>
                       <span className="text-sm font-black">
-                        -Rs.{order.items.reduce((sum, item) => {
-                          const base = item.price * item.quantity;
-                          return sum + (base - calculateItemTotal(item));
-                        }, 0).toFixed(2)}
+                        -Rs.{totalReductions.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -367,12 +442,10 @@ export default function OrderDetailsPage() {
         invoiceId={order.invoiceId}
         grandTotal={order.total}
         cashGiven={order.cashGiven || 0}
-        discountValue={order.items.reduce((sum, item) => {
-          const base = item.price * item.quantity;
-          return sum + (base - calculateItemTotal(item));
-        }, 0)}
+        discountValue={billDiscountValue}
         balance={order.balance || 0}
         paymentType={order.paymentType}
+        cashier="Cashier"
       />
     </div>
   );

@@ -29,6 +29,9 @@ interface CreateOrderDto {
   paymentType: string;
   cashGiven?: number;
   balance?: number;
+  billDiscount?: number;
+  billDiscountIsPercentage?: boolean;
+  billDiscountValue?: number;
 }
 
 @Controller('orders')
@@ -45,6 +48,9 @@ export class OrderController {
       paymentType,
       cashGiven,
       balance,
+      billDiscount,
+      billDiscountIsPercentage,
+      billDiscountValue,
     } = body;
 
     if (!items || !Array.isArray(items) || typeof total !== 'number') {
@@ -79,6 +85,9 @@ export class OrderController {
         paymentType,
         cashGiven,
         balance,
+        billDiscount,
+        billDiscountIsPercentage,
+        billDiscountValue,
       });
 
       return { message: 'Order placed successfully', data: createdOrder };
