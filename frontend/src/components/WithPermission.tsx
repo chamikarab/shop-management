@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { hasEffectivePermission } from "@/lib/permissions";
 
 interface Props {
   required: string;
@@ -24,11 +25,11 @@ export default function WithPermission({ required, children }: Props) {
         }
 
         const data = await res.json();
-        const allowed = data?.user?.permissions?.includes(required);
-        setHasPermission(!!allowed);
+        const allowed = hasEffectivePermission(data?.user, required);
+        setHasPermission(allowed);
 
         if (!allowed) {
-          router.push("/unauthorized"); // ✅ only redirect inside useEffect
+          router.push("/unauthorized");
         }
       } catch (err) {
         console.error("Permission check failed:", err);

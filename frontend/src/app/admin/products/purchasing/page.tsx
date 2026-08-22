@@ -584,7 +584,7 @@ function PurchasingPage() {
 
 export default function ProtectedPurchasingPage() {
   return (
-    <WithPermission required="products:purchasing">
+    <WithPermission required="products:purchase_products">
       <PurchasingPage />
     </WithPermission>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import BeerLoader from "@/components/BeerLoader";
+import WithPermission from "@/components/WithPermission";
 import { 
   FaBox, FaUsers, FaClipboardList, FaPlus, FaShoppingCart, 
   FaArrowRight, FaChartLine, FaCheckCircle, FaBolt, 
@@ -21,6 +22,14 @@ type SummaryData = {
 };
 
 export default function AdminDashboard() {
+  return (
+    <WithPermission required="dashboard:access">
+      <AdminDashboardContent />
+    </WithPermission>
+  );
+}
+
+function AdminDashboardContent() {
   const [summary, setSummary] = useState<SummaryData>({
     totalProducts: 0,
     lowStock: 0,

@@ -16,6 +16,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { UserService } from './user.service';
 import { User, UserRole } from './user.schema';
+import { sanitizePermissions } from './permission.utils';
 import {
   canAssignRole,
   canCreateUsers,
@@ -64,6 +65,10 @@ export class UserController {
       throw new ForbiddenException('You do not have permission to create this role');
     }
 
+    if (userData.permissions) {
+      userData.permissions = sanitizePermissions(userData.permissions);
+    }
+
     try {
       const created = await this.userService.create(userData);
       return created;
@@ -101,6 +106,10 @@ export class UserController {
 
     if (updateData.role && !canAssignRole(actor.role, updateData.role)) {
       throw new ForbiddenException('You do not have permission to assign this role');
+    }
+
+    if (updateData.permissions) {
+      updateData.permissions = sanitizePermissions(updateData.permissions);
     }
 
     const updated = await this.userService.update(id, updateData);

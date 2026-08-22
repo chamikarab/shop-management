@@ -3,30 +3,51 @@ import jwt from 'jsonwebtoken';
 
 const secret = process.env.JWT_SECRET!;
 
+const SUPER_ADMIN_ROLE = 'super_admin';
+
 // Define which routes require which permissions
 const protectedRoutes: Record<string, string> = {
   '/admin/dashboard': 'dashboard:access',
+  '/admin/billing': 'billing:access',
+  '/admin/expenses': 'expenses:view',
   '/admin/products': 'products:view',
   '/admin/products/add': 'products:add',
-  '/admin/products/purchasing': 'products:purchasing',
-  '/admin/products/pricing': 'products:purchasing',
+  '/admin/products/purchasing': 'products:purchase_products',
+  '/admin/products/pricing': 'products:purchase_pricing',
   '/admin/users': 'users:view',
   '/admin/users/add': 'users:add',
   '/admin/orders': 'orders:view',
-  '/admin/reports': 'dashboard:access',
-  '/admin/expenses': 'dashboard:access',
+  '/admin/reports': 'reports:view',
 };
+
+function expandPermissionsForAccessCheck(permissions: string[] = []): string[] {
+  const expanded = new Set(permissions);
+
+  if (expanded.has('products:purchasing')) {
+    expanded.delete('products:purchasing');
+    expanded.add('products:purchase_products');
+    expanded.add('products:purchase_pricing');
+  }
+
+  return Array.from(expanded);
+}
+
+function hasPermissionInList(
+  userPermissions: string[],
+  required: string
+): boolean {
+  if (!userPermissions?.length) return false;
+  return expandPermissionsForAccessCheck(userPermissions).includes(required);
+}
 
 export async function middleware(req: NextRequest) {
   const accessToken = req.cookies.get('access_token')?.value;
   const pathname = req.nextUrl.pathname;
 
-  // Determine required permissions for the current route
-  const requiredPermissions = Object.entries(protectedRoutes).find(([path]) =>
-    pathname.startsWith(path)
-  )?.[1];
+  const requiredPermissions = Object.entries(protectedRoutes)
+    .sort((a, b) => b[0].length - a[0].length)
+    .find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[1];
 
-  // No access token — try refreshing
   if (!accessToken) {
     try {
       const refreshResponse = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
@@ -38,32 +59,57 @@ export async function middleware(req: NextRequest) {
 
       if (refreshResponse.ok) {
         return NextResponse.next();
-      } else {
-        return NextResponse.redirect(new URL('/login', req.url));
       }
-    } catch (err) {
+
+      return NextResponse.redirect(new URL('/login', req.url));
+    } catch {
       return NextResponse.redirect(new URL('/login', req.url));
     }
   }
 
-  // Decode token and check permissions
   try {
-    const payload: any = jwt.verify(accessToken, secret);
+    const payload = jwt.verify(accessToken, secret) as {
+      role?: string;
+      permissions?: string[];
+    };
     const userPermissions = payload.permissions || [];
+
+    if (payload.role === SUPER_ADMIN_ROLE) {
+      return NextResponse.next();
+    }
+
+    if (pathname === '/admin' || pathname === '/admin/') {
+      if (!hasPermissionInList(userPermissions, 'dashboard:access')) {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+      }
+      return NextResponse.next();
+    }
+
+    if (
+      /^\/admin\/products\/[^/]+$/.test(pathname) &&
+      !pathname.startsWith('/admin/products/add') &&
+      !pathname.startsWith('/admin/products/purchasing') &&
+      !pathname.startsWith('/admin/products/pricing')
+    ) {
+      if (!hasPermissionInList(userPermissions, 'products:edit')) {
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+      }
+      return NextResponse.next();
+    }
 
     if (
       requiredPermissions &&
-      !userPermissions.includes(requiredPermissions)
+      !hasPermissionInList(userPermissions, requiredPermissions)
     ) {
       return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
 
     return NextResponse.next();
-  } catch (err) {
+  } catch {
     return NextResponse.redirect(new URL('/login', req.url));
   }
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  matcher: ['/admin/:path*', '/admin'],
 };

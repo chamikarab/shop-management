@@ -423,7 +423,7 @@ function PurchasingPricePage() {
 
 export default function ProtectedPurchasingPricePage() {
   return (
-    <WithPermission required="products:purchasing">
+    <WithPermission required="products:purchase_pricing">
       <PurchasingPricePage />
     </WithPermission>
   );

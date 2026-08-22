@@ -10,7 +10,15 @@ import {
 } from "react-icons/fa";
 import BeerLoader from "@/components/BeerLoader";
 import WithPermission from "@/components/WithPermission";
+import PermissionPicker, { PermissionPickerStyles } from "@/components/PermissionPicker";
 import { formatRoleLabel, getRoleColor, getRoleGradient, canCreateUsers, getCreatableRoles } from "@/lib/roles";
+import {
+  type PermissionKey,
+  createEmptyPermissionState,
+  permissionsFromState,
+  isSuperAdmin,
+  sanitizePermissionsForSave,
+} from "@/lib/permissions";
 
 function AddUserForm() {
   const [loading, setLoading] = useState(false);
@@ -19,15 +27,6 @@ function AddUserForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-
-  type PermissionKey = 
-    | "dashboard:access"
-    | "products:view"
-    | "products:add"
-    | "products:purchasing"
-    | "users:view"
-    | "users:add"
-    | "orders:view";
 
   const [formData, setFormData] = useState({
     name: "",
@@ -38,15 +37,7 @@ function AddUserForm() {
     role: "",
   });
 
-  const [permissions, setPermissions] = useState<Record<PermissionKey, boolean>>({
-    "dashboard:access": false,
-    "products:view": false,
-    "products:add": false,
-    "products:purchasing": false,
-    "users:view": false,
-    "users:add": false,
-    "orders:view": false,
-  });
+  const [permissions, setPermissions] = useState(createEmptyPermissionState());
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -88,6 +79,8 @@ function AddUserForm() {
     setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const selectedPermissions = permissionsFromState(permissions);
+
   const generatePassword = () => {
     const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$";
     const password = Array.from({ length: 10 }, () =>
@@ -113,9 +106,9 @@ function AddUserForm() {
 
     const submitData = {
       ...formData,
-      permissions: Object.entries(permissions)
-        .filter(([, value]) => value)
-        .map(([key]) => key),
+      permissions: isSuperAdmin(formData.role)
+        ? []
+        : sanitizePermissionsForSave(permissionsFromState(permissions)),
     };
 
     try {
@@ -144,9 +137,14 @@ function AddUserForm() {
   const getPermissionIcon = (key: string) => {
     switch (key) {
       case "dashboard:access": return <FaChartLine size={14} />;
+      case "billing:access": return <FaReceipt size={14} />;
+      case "expenses:view": return <FaReceipt size={14} />;
       case "products:view": return <FaBoxes size={14} />;
       case "products:add": return <FaPlusCircle size={14} />;
-      case "products:purchasing": return <FaShoppingCart size={14} />;
+      case "products:edit": return <FaBoxes size={14} />;
+      case "products:purchase_products": return <FaShoppingCart size={14} />;
+      case "products:purchase_pricing": return <FaChartLine size={14} />;
+      case "reports:view": return <FaChartLine size={14} />;
       case "users:view": return <FaUsers size={14} />;
       case "users:add": return <FaUserPlus size={14} />;
       case "orders:view": return <FaReceipt size={14} />;
@@ -363,54 +361,30 @@ function AddUserForm() {
           </div>
 
                 <div className="space-y-4">
-          <div>
+                  <div>
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">System Permissions</label>
-                    <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-1">
-                      Toggle switches to grant or revoke specific access permissions.
-            </p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(permissions).map(([key, value]) => (
-                <div
-                  key={key}
-                        onClick={() => handleToggle(key as PermissionKey)}
-                        className={`group/perm flex items-center justify-between p-5 rounded-2xl border-2 transition-all duration-300 cursor-pointer ${
-                          value
-                            ? "bg-white border-indigo-600 shadow-lg shadow-indigo-100 ring-4 ring-indigo-50"
-                            : "bg-slate-50 border-transparent hover:border-slate-200 hover:bg-white"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300 ${
-                            value 
-                              ? "bg-indigo-600 text-white" 
-                              : "bg-white text-slate-400 border border-slate-100 shadow-sm group-hover/perm:text-indigo-500"
-                          }`}>
-                            {getPermissionIcon(key)}
-                          </div>
-                          <div>
-                            <span className={`text-xs font-black uppercase tracking-wider transition-colors duration-300 ${
-                              value ? "text-slate-900" : "text-slate-500"
-                            }`}>
-                              {key.split(":")[0]}
-                  </span>
-                            <p className={`text-[10px] font-bold uppercase tracking-[0.1em] transition-colors duration-300 ${
-                              value ? "text-indigo-500" : "text-slate-300"
-                            }`}>
-                              {key.split(":")[1]} Access
-                            </p>
-                          </div>
+                    {isSuperAdmin(formData.role) ? (
+                      <div className="mt-3 rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                        <p className="text-sm font-bold text-rose-700">
+                          Super Admin has full access to every module automatically.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-[10px] text-slate-400 font-bold leading-relaxed mt-1">
+                          {currentUserRole === "super_admin"
+                            ? "Grant access to each module for this user."
+                            : "Grant access for manager or cashier roles."}
+                        </p>
+                        <div className="mt-4">
+                          <PermissionPicker
+                            selected={selectedPermissions}
+                            onToggle={handleToggle}
+                            actorRole={currentUserRole || undefined}
+                          />
                         </div>
-                        <label className="modern-switch scale-75 origin-right">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                            onChange={() => {}} // Controlled by parent div click
-                    />
-                    <span className="modern-slider"></span>
-                  </label>
-                </div>
-              ))}
+                      </>
+                    )}
                   </div>
                 </div>
             </div>
@@ -501,10 +475,8 @@ function AddUserForm() {
                   <div className="space-y-3">
                     <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Active Modules</p>
                     <div className="flex flex-wrap gap-2">
-                      {Object.entries(permissions).filter(([, v]) => v).length > 0 ? (
-                        Object.entries(permissions)
-                          .filter(([, v]) => v)
-                          .map(([key]) => (
+                      {selectedPermissions.length > 0 ? (
+                        selectedPermissions.map((key) => (
                             <div key={key} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border border-indigo-100 animate-in fade-in zoom-in duration-300">
                               {getPermissionIcon(key)}
                               {key.split(":")[0]}
@@ -620,6 +592,7 @@ function AddUserForm() {
           box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         }
       `}</style>
+      <PermissionPickerStyles />
     </>
   );
 }

@@ -12,6 +12,7 @@ import {
   FaHistory, FaTimes, FaLayerGroup, FaArrowLeft
 } from "react-icons/fa";
 import "../styles/billing.css";
+import WithPermission from "@/components/WithPermission";
 
 interface Product {
   id: string;
@@ -41,6 +42,14 @@ type PrintInvoiceData = {
 };
 
 export default function BillingPage() {
+  return (
+    <WithPermission required="billing:access">
+      <BillingPageContent />
+    </WithPermission>
+  );
+}
+
+function BillingPageContent() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Product[]>([]);
   const [products, setProducts] = useState<Product[]>([]);

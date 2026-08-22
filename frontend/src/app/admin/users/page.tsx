@@ -8,6 +8,13 @@ import {
 } from "react-icons/fa";
 import Link from "next/link";
 import WithPermission from "@/components/WithPermission";
+import PermissionPicker, { PermissionPickerStyles } from "@/components/PermissionPicker";
+import {
+  type PermissionKey,
+  isSuperAdmin,
+  normalizePermissionsForEdit,
+  sanitizePermissionsForSave,
+} from "@/lib/permissions";
 import { USER_ROLES, formatRoleLabel, getRoleColor, canCreateUsers, canManageUser, canDeleteUser, getCreatableRoles } from "@/lib/roles";
 
 type User = {
@@ -128,7 +135,7 @@ function AllUsersPage() {
   const handleEdit = (user: User) => {
     setEditUser(user);
     setEditRole(user.role);
-    setEditPermissions(user.permissions || []);
+    setEditPermissions(normalizePermissionsForEdit(user.permissions || []));
   };
 
   const handleSaveEdit = async () => {
@@ -141,7 +148,9 @@ function AllUsersPage() {
         credentials: "include",
         body: JSON.stringify({
           role: editRole,
-          permissions: editPermissions,
+          permissions: isSuperAdmin(editRole)
+            ? []
+            : sanitizePermissionsForSave(editPermissions),
         }),
       });
 
@@ -152,10 +161,18 @@ function AllUsersPage() {
 
         if (editUser._id === currentUserId) {
           toast.loading("Updating permissions... Page will reload.");
+          await fetch("/api/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
           localStorage.setItem("forcePermissionReload", Date.now().toString());
           setTimeout(() => {
             window.location.reload();
           }, 1000);
+        } else {
+          toast("Ask this user to log out and log back in for access changes to apply.", {
+            icon: "ℹ️",
+          });
         }
       } else {
         const data = await res.json().catch(() => ({}));
@@ -167,22 +184,13 @@ function AllUsersPage() {
     }
   };
 
-  const togglePermission = (perm: string) => {
+  const togglePermission = (perm: PermissionKey) => {
     setEditPermissions((prev) =>
       prev.includes(perm)
         ? prev.filter((p) => p !== perm)
         : [...prev, perm]
     );
   };
-
-  const allPermissions = [
-    "users:view",
-    "users:add",
-    "products:view",
-    "products:add",
-    "products:purchasing",
-    "orders:view",
-  ];
 
   const creatableRoles = useMemo(
     () => getCreatableRoles(currentUserRole || undefined),
@@ -524,34 +532,30 @@ function AllUsersPage() {
 
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Permissions</label>
-                <p className="text-xs text-slate-500 font-medium">
-                  Select the permissions this user should have access to
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {allPermissions.map((perm) => (
-                    <div
-                      key={perm}
-                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                        editPermissions.includes(perm)
-                          ? 'bg-indigo-50 border-indigo-300'
-                          : 'bg-slate-50 border-slate-200 hover:border-indigo-200'
-                      }`}
-                      onClick={() => togglePermission(perm)}
-                    >
-                      <span className="text-sm font-medium text-slate-700">
-                        {perm.replace(/:/g, " → ").replace(/\b\w/g, (l) => l.toUpperCase())}
-                      </span>
-                      <label className="modern-switch">
-                        <input
-                          type="checkbox"
-                          checked={editPermissions.includes(perm)}
-                          onChange={() => togglePermission(perm)}
-                        />
-                        <span className="modern-slider"></span>
-                      </label>
-                    </div>
-                  ))}
-                </div>
+                {isSuperAdmin(editRole) ? (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
+                    <p className="text-sm font-bold text-rose-700">
+                      Super Admin has full access to every module automatically.
+                    </p>
+                    <p className="text-xs text-rose-600 mt-1">
+                      Individual permissions are not required for this role.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-500 font-medium">
+                      {currentUserRole === "super_admin"
+                        ? "Grant access to each module for this user."
+                        : "Grant access for manager or cashier roles."}
+                    </p>
+                    <PermissionPicker
+                      selected={editPermissions}
+                      onToggle={togglePermission}
+                      actorRole={currentUserRole || undefined}
+                      compact
+                    />
+                  </>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">
@@ -573,6 +577,7 @@ function AllUsersPage() {
         </div>
       )}
 
+      <PermissionPickerStyles />
       <style jsx>{`
         .modern-switch {
           position: relative;

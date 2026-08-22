@@ -4,6 +4,10 @@ import * as bcrypt from 'bcrypt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User, UserDocument } from '../user/user.schema';
+import {
+  expandPermissionsForAccessCheck,
+  sanitizePermissions,
+} from '../user/permission.utils';
 
 @Injectable()
 export class AuthService {
@@ -28,10 +32,14 @@ export class AuthService {
   }
 
   generateTokens(user: UserDocument) {
+    const permissions = sanitizePermissions(
+      expandPermissionsForAccessCheck(user.permissions),
+    );
+
     const payload = {
       sub: user._id.toString(),
       role: user.role,
-      permissions: user.permissions,
+      permissions,
       name: user.name,
       email: user.email,
     };

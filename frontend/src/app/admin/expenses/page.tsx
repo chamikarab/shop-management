@@ -9,6 +9,7 @@ import {
   formatCurrency,
   todayDateString,
 } from "@/lib/reports";
+import WithPermission from "@/components/WithPermission";
 
 type Expense = {
   _id: string;
@@ -30,6 +31,14 @@ const emptyForm = () => ({
 });
 
 export default function DailyExpensesPage() {
+  return (
+    <WithPermission required="expenses:view">
+      <DailyExpensesPageContent />
+    </WithPermission>
+  );
+}
+
+function DailyExpensesPageContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [expenses, setExpenses] = useState<Expense[]>([]);
