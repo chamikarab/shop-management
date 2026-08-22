@@ -23,6 +23,7 @@ import {
   FaReceipt,
 } from "react-icons/fa";
 import { formatRoleLabel } from "@/lib/roles";
+import { hasEffectivePermission } from "@/lib/permissions";
 import "./styles/admin.css";
 
 type User = {
@@ -128,6 +129,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
   };
 
+  const canAccess = (permission: string) =>
+    hasEffectivePermission(user, permission);
+
   return (
     <div className={`admin-layout flex h-screen overflow-hidden ${collapsed ? "sidebar-collapsed" : ""} ${mobileOpen ? "mobile-sidebar-open" : ""}`}>
       {/* Global Admin Loader Overlay */}
@@ -200,6 +204,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             {/* Sales Section */}
             <div className="sidebar-nav-section">
               <span className="sidebar-nav-label">Core Operations</span>
+              {canAccess("billing:access") && (
               <Link
                 href="/admin/billing"
                 className={`sidebar-link ${pathname === "/admin/billing" ? "active" : ""}`}
@@ -207,6 +212,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <FaCashRegister />
                 <span>Point of Sale</span>
               </Link>
+              )}
+              {canAccess("dashboard:access") && (
               <Link
                 href="/admin"
                 className={`sidebar-link ${pathname === "/admin" ? "active" : ""}`}
@@ -214,6 +221,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <FaChartPie />
                 <span>Overview</span>
               </Link>
+              )}
+              {canAccess("expenses:view") && (
               <Link
                 href="/admin/expenses"
                 className={`sidebar-link ${pathname === "/admin/expenses" ? "active" : ""}`}
@@ -221,13 +230,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <FaReceipt />
                 <span>Daily Expenses</span>
               </Link>
+              )}
             </div>
 
             {/* Inventory Section */}
-            {user.permissions?.some((p) => p.startsWith("products:")) && (
+            {(canAccess("products:view") ||
+              canAccess("products:add") ||
+              canAccess("products:purchase_products") ||
+              canAccess("products:purchase_pricing")) && (
               <div className="sidebar-nav-section">
                 <span className="sidebar-nav-label">Inventory Mesh</span>
-                {user.permissions.includes("products:view") && (
+                {canAccess("products:view") && (
                   <Link
                     href="/admin/products"
                     className={`sidebar-link ${pathname === "/admin/products" ? "active" : ""}`}
@@ -236,7 +249,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <span>All Products</span>
                   </Link>
                 )}
-                {user.permissions.includes("products:add") && (
+                {canAccess("products:add") && (
                   <Link
                     href="/admin/products/add"
                     className={`sidebar-link ${pathname === "/admin/products/add" ? "active" : ""}`}
@@ -245,7 +258,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <span>Add Product</span>
                   </Link>
                 )}
-                {user.permissions.includes("products:purchasing") && (
+                {canAccess("products:purchase_products") && (
                   <Link
                     href="/admin/products/purchasing"
                     className={`sidebar-link ${pathname === "/admin/products/purchasing" ? "active" : ""}`}
@@ -254,7 +267,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <span>Purchase Products</span>
                   </Link>
                 )}
-                {user.permissions.includes("products:purchasing") && (
+                {canAccess("products:purchase_pricing") && (
                   <Link
                     href="/admin/products/pricing"
                     className={`sidebar-link ${pathname === "/admin/products/pricing" ? "active" : ""}`}
@@ -267,7 +280,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
 
             {/* Orders Section */}
-            {user.permissions?.some((p) => p.startsWith("orders:")) && (
+            {canAccess("orders:view") && (
               <div className="sidebar-nav-section">
                 <span className="sidebar-nav-label">Transaction Feed</span>
                 <Link
@@ -281,7 +294,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
 
             {/* Reports Section */}
-            {user.permissions?.includes("dashboard:access") && (
+            {canAccess("reports:view") && (
               <div className="sidebar-nav-section">
                 <span className="sidebar-nav-label">Reports & Analytics</span>
                 <Link
@@ -295,10 +308,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             )}
 
             {/* Users Section */}
-            {user.permissions?.some((p) => p.startsWith("users:")) && (
+            {(canAccess("users:view") || canAccess("users:add")) && (
               <div className="sidebar-nav-section">
                 <span className="sidebar-nav-label">Access Control</span>
-                {user.permissions.includes("users:view") && (
+                {canAccess("users:view") && (
                   <Link
                     href="/admin/users"
                     className={`sidebar-link ${pathname === "/admin/users" ? "active" : ""}`}
@@ -307,7 +320,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <span>All Users</span>
                   </Link>
                 )}
-                {user.permissions.includes("users:add") && (
+                {canAccess("users:add") && (
                   <Link
                     href="/admin/users/add"
                     className={`sidebar-link ${pathname === "/admin/users/add" ? "active" : ""}`}

@@ -6,14 +6,23 @@ export type UserDocument = User & Document & { _id: string };
 
 export type UserRole = 'super_admin' | 'admin' | 'manager' | 'cashier';
 
-export type PermissionType =
-  | 'dashboard:access'
-  | 'products:view'
-  | 'products:add'
-  | 'products:purchasing'
-  | 'users:view'
-  | 'users:add'
-  | 'orders:view';
+export const ALL_PERMISSIONS = [
+  'dashboard:access',
+  'billing:access',
+  'expenses:view',
+  'products:view',
+  'products:add',
+  'products:edit',
+  'products:purchase_products',
+  'products:purchase_pricing',
+  'products:purchasing',
+  'orders:view',
+  'reports:view',
+  'users:view',
+  'users:add',
+] as const;
+
+export type PermissionType = (typeof ALL_PERMISSIONS)[number];
 
 @Schema({ timestamps: true })
 export class User {
@@ -34,15 +43,7 @@ export class User {
 
   @Prop({
     type: [String],
-    enum: [
-      'dashboard:access',
-      'products:view',
-      'products:add',
-      'products:purchasing',
-      'users:view',
-      'users:add',
-      'orders:view',
-    ],
+    enum: ALL_PERMISSIONS,
     default: [],
   })
   permissions: PermissionType[];

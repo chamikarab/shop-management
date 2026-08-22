@@ -1,14 +1,18 @@
 import { Controller, Get, Req, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
+import { AuthService } from '../auth/auth.service';
+import { expandPermissionsForAccessCheck } from '../user/permission.utils';
 
 @Controller('api')
 export class MeController {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly authService: AuthService,
+  ) {}
 
   @Get('me')
   async getMe(@Req() req: Request) {
-    // ✅ Try to get token from either cookie or Authorization header
     const cookieToken = req.cookies?.['access_token'];
     const headerToken = req.headers.authorization?.replace('Bearer ', '');
     const token = cookieToken || headerToken;
@@ -18,18 +22,21 @@ export class MeController {
     }
 
     try {
-      // JwtService is already configured with the secret in the module
       const decoded = await this.jwtService.verifyAsync(token);
-      
-      // Return the decoded user data (which includes sub, role, permissions, etc.)
-      return { 
+      const user = await this.authService.findUserById(decoded.sub);
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      return {
         user: {
-          _id: decoded.sub,
-          role: decoded.role,
-          permissions: decoded.permissions,
-          name: decoded.name,
-          email: decoded.email,
-        }
+          _id: user._id,
+          role: user.role,
+          permissions: expandPermissionsForAccessCheck(user.permissions),
+          name: user.name,
+          email: user.email,
+        },
       };
     } catch (error) {
       console.error('❌ Invalid token in /api/me:', error?.message || error);
