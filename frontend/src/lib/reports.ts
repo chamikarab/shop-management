@@ -36,6 +36,9 @@ export type Order = {
   paymentType: string;
   cashGiven?: number;
   balance?: number;
+  billDiscount?: number;
+  billDiscountIsPercentage?: boolean;
+  billDiscountValue?: number;
   createdAt: string;
   updatedAt?: string;
 };
@@ -67,8 +70,8 @@ export type DailySalesSummaryRow = {
   totalStock: number;
   salesStock: number;
   inHandStock: number;
-  unitPrice: number;
-  totalValue: number;
+  sellingPrice: number;
+  grossValue: number;
 };
 
 export type StockStatusLabel = "Out" | "Low" | "OK";
@@ -106,6 +109,33 @@ export type Expense = {
   isFixed?: boolean;
   effectiveFrom?: string;
   createdAt?: string;
+};
+
+export type FreeItemExpense = {
+  productId: string;
+  name: string;
+  category: string;
+  size: string;
+  quantity: number;
+  sellingPrice: number;
+  amount: number;
+  orderDate?: string;
+  invoiceId?: string;
+};
+
+export type DiscountSummary = {
+  itemDiscount: number;
+  billDiscount: number;
+  totalDiscount: number;
+};
+
+export type OrderDiscountRow = {
+  orderId: string;
+  invoiceId: string;
+  date: string;
+  itemDiscount: number;
+  billDiscount: number;
+  totalDiscount: number;
 };
 
 export const FIXED_EXPENSE_CATEGORIES = [
@@ -192,8 +222,7 @@ function qtyFromOrders(
       sum +
       order.items
         .filter(
-          (item) =>
-            normalizeId(item.productId) === normalizeId(productId) && !item.free
+          (item) => normalizeId(item.productId) === normalizeId(productId)
         )
         .reduce((s, item) => s + item.quantity, 0)
     );
@@ -242,7 +271,11 @@ export function buildDailySalesSummary(
 ): DailySalesSummaryRow[] {
   const groupMap = new Map<
     string,
-    DailySalesSummaryRow & { salesValue: number; priceWeight: number }
+    DailySalesSummaryRow & {
+      grossSalesValue: number;
+      listPriceSum: number;
+      productCount: number;
+    }
   >();
 
   products.forEach((product) => {
@@ -263,20 +296,20 @@ export function buildDailySalesSummary(
       isAfterReportEnd(d, dateRange)
     );
 
-    const inHandStock = Math.max(
+    const inHandAtEnd = Math.max(
       0,
       product.stock - purchasesAfter + salesAfter
     );
     const openingStock = Math.max(
       0,
-      inHandStock - purchaseInPeriod + salesInPeriod
+      inHandAtEnd - purchaseInPeriod + salesInPeriod
     );
     const purchaseStock = purchaseInPeriod;
     const totalStock = openingStock + purchaseStock;
     const salesStock = salesInPeriod;
-    const salesValue = salesValueInRange(orders, product._id, dateRange);
-    const unitPrice =
-      salesInPeriod > 0 ? salesValue / salesInPeriod : product.price;
+    const inHandStock = Math.max(0, totalStock - salesStock);
+    const sellingPrice = product.price;
+    const grossSalesValue = salesStock * sellingPrice;
 
     const existing = groupMap.get(key);
     if (existing) {
@@ -285,8 +318,9 @@ export function buildDailySalesSummary(
       existing.totalStock += totalStock;
       existing.salesStock += salesStock;
       existing.inHandStock += inHandStock;
-      existing.salesValue += salesValue;
-      existing.priceWeight += salesInPeriod > 0 ? salesInPeriod : 1;
+      existing.grossSalesValue += grossSalesValue;
+      existing.listPriceSum += product.price;
+      existing.productCount += 1;
     } else {
       groupMap.set(key, {
         category,
@@ -296,10 +330,11 @@ export function buildDailySalesSummary(
         totalStock,
         salesStock,
         inHandStock,
-        unitPrice,
-        totalValue: 0,
-        salesValue,
-        priceWeight: salesInPeriod > 0 ? salesInPeriod : 1,
+        sellingPrice,
+        grossValue: grossSalesValue,
+        grossSalesValue,
+        listPriceSum: product.price,
+        productCount: 1,
       });
     }
   });
@@ -313,11 +348,9 @@ export function buildDailySalesSummary(
       totalStock: row.totalStock,
       salesStock: row.salesStock,
       inHandStock: row.inHandStock,
-      unitPrice:
-        row.salesStock > 0
-          ? row.salesValue / row.salesStock
-          : row.unitPrice,
-      totalValue: row.salesValue,
+      sellingPrice:
+        row.productCount > 0 ? row.listPriceSum / row.productCount : 0,
+      grossValue: row.grossSalesValue,
     }))
     .sort((a, b) =>
       a.category.localeCompare(b.category) || a.size.localeCompare(b.size)
@@ -332,7 +365,7 @@ export function sumDailySalesSummary(rows: DailySalesSummaryRow[]) {
       totalStock: acc.totalStock + row.totalStock,
       salesStock: acc.salesStock + row.salesStock,
       inHandStock: acc.inHandStock + row.inHandStock,
-      totalValue: acc.totalValue + row.totalValue,
+      grossValue: acc.grossValue + row.grossValue,
     }),
     {
       openingStock: 0,
@@ -340,7 +373,7 @@ export function sumDailySalesSummary(rows: DailySalesSummaryRow[]) {
       totalStock: 0,
       salesStock: 0,
       inHandStock: 0,
-      totalValue: 0,
+      grossValue: 0,
     }
   );
 }
@@ -377,14 +410,17 @@ export function buildDailyStockBalance(
       isAfterReportEnd(d, dateRange)
     );
 
-    const inHandStock = Math.max(
+    const inHandAtEnd = Math.max(
       0,
       product.stock - purchasesAfter + salesAfter
     );
     const openingStock = Math.max(
       0,
-      inHandStock - purchaseInPeriod + salesInPeriod
+      inHandAtEnd - purchaseInPeriod + salesInPeriod
     );
+    const purchaseStock = purchaseInPeriod;
+    const salesStock = salesInPeriod;
+    const inHandStock = Math.max(0, openingStock + purchaseStock - salesStock);
     const unitCost = getProductCost(product);
     const productCostValue = unitCost * inHandStock;
     const productRetailValue = product.price * inHandStock;
@@ -392,8 +428,8 @@ export function buildDailyStockBalance(
     const existing = groupMap.get(key);
     if (existing) {
       existing.openingStock += openingStock;
-      existing.purchaseStock += purchaseInPeriod;
-      existing.salesStock += salesInPeriod;
+      existing.purchaseStock += purchaseStock;
+      existing.salesStock += salesStock;
       existing.inHandStock += inHandStock;
       existing.costValue += productCostValue;
       existing.retailValue += productRetailValue;
@@ -403,8 +439,8 @@ export function buildDailyStockBalance(
         category,
         size,
         openingStock,
-        purchaseStock: purchaseInPeriod,
-        salesStock: salesInPeriod,
+        purchaseStock,
+        salesStock,
         inHandStock,
         costValue: productCostValue,
         retailValue: productRetailValue,
@@ -594,12 +630,152 @@ export function getItemRevenue(item: OrderItem): number {
   return base - item.discount * item.quantity;
 }
 
+export function getOrderItemDiscount(order: Order): number {
+  return order.items.reduce((sum, item) => {
+    if (item.free) return sum;
+    const base = item.price * item.quantity;
+    return sum + (base - getItemRevenue(item));
+  }, 0);
+}
+
+export function getOrderBillDiscount(order: Order): number {
+  if (order.billDiscountValue != null && order.billDiscountValue > 0) {
+    return order.billDiscountValue;
+  }
+  const itemsSubtotal = order.items.reduce(
+    (sum, item) => sum + getItemRevenue(item),
+    0
+  );
+  return Math.max(0, itemsSubtotal - order.total);
+}
+
+export function getOrderDiscountSummary(order: Order): DiscountSummary {
+  const itemDiscount = getOrderItemDiscount(order);
+  const billDiscount = getOrderBillDiscount(order);
+  return {
+    itemDiscount,
+    billDiscount,
+    totalDiscount: itemDiscount + billDiscount,
+  };
+}
+
+export function getOrderDiscountsInRange(
+  orders: Order[],
+  range: { start: string; end: string }
+): OrderDiscountRow[] {
+  return orders
+    .filter((order) => isInReportRange(orderDateKey(order), range))
+    .map((order) => {
+      const summary = getOrderDiscountSummary(order);
+      return {
+        orderId: order._id,
+        invoiceId: order.invoiceId,
+        date: orderDateKey(order),
+        itemDiscount: summary.itemDiscount,
+        billDiscount: summary.billDiscount,
+        totalDiscount: summary.totalDiscount,
+      };
+    })
+    .filter((row) => row.totalDiscount > 0)
+    .sort((a, b) => b.date.localeCompare(a.date) || a.invoiceId.localeCompare(b.invoiceId));
+}
+
+export function sumDiscountsInRange(
+  orders: Order[],
+  range: { start: string; end: string }
+): DiscountSummary {
+  return getOrderDiscountsInRange(orders, range).reduce(
+    (acc, row) => ({
+      itemDiscount: acc.itemDiscount + row.itemDiscount,
+      billDiscount: acc.billDiscount + row.billDiscount,
+      totalDiscount: acc.totalDiscount + row.totalDiscount,
+    }),
+    { itemDiscount: 0, billDiscount: 0, totalDiscount: 0 }
+  );
+}
+
+export function sumDiscountsForMonth(
+  orders: Order[],
+  monthKey: string
+): DiscountSummary {
+  const { start, end } = monthRange(monthKey);
+  return sumDiscountsInRange(orders, { start, end });
+}
+
 export function getProductCost(product: Product | undefined): number {
   return (
     product?.purchasePriceWithVat ??
     product?.purchasePriceWithoutVat ??
     0
   );
+}
+
+export function getFreeItemsInRange(
+  orders: Order[],
+  products: Product[],
+  range: { start: string; end: string }
+): FreeItemExpense[] {
+  const productMap = new Map(
+    products.map((product) => [normalizeId(product._id), product])
+  );
+  const aggregated = new Map<string, FreeItemExpense>();
+
+  orders.forEach((order) => {
+    const orderDate = orderDateKey(order);
+    if (!isInReportRange(orderDate, range)) return;
+
+    order.items.forEach((item) => {
+      if (!item.free) return;
+
+      const product = productMap.get(normalizeId(item.productId));
+      const sellingPrice = item.price || product?.price || 0;
+      const lineAmount = sellingPrice * item.quantity;
+      const key = normalizeId(item.productId) || item.name;
+
+      const existing = aggregated.get(key);
+      if (existing) {
+        existing.quantity += item.quantity;
+        existing.amount += lineAmount;
+        existing.sellingPrice =
+          existing.quantity > 0 ? existing.amount / existing.quantity : sellingPrice;
+        return;
+      }
+
+      aggregated.set(key, {
+        productId: item.productId,
+        name: item.name,
+        category: product?.category || "Uncategorized",
+        size: product?.size || "—",
+        quantity: item.quantity,
+        sellingPrice,
+        amount: lineAmount,
+      });
+    });
+  });
+
+  return Array.from(aggregated.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+}
+
+export function sumFreeItemsExpense(
+  orders: Order[],
+  products: Product[],
+  range: { start: string; end: string }
+): number {
+  return getFreeItemsInRange(orders, products, range).reduce(
+    (sum, item) => sum + item.amount,
+    0
+  );
+}
+
+export function sumFreeItemsExpenseForMonth(
+  orders: Order[],
+  products: Product[],
+  monthKey: string
+): number {
+  const { start, end } = monthRange(monthKey);
+  return sumFreeItemsExpense(orders, products, { start, end });
 }
 
 export function formatCurrency(value: number): string {

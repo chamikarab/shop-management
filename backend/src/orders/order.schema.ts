@@ -57,6 +57,15 @@ export class Order {
 
   @Prop({ default: null })
   balance?: number;
+
+  @Prop({ default: 0 })
+  billDiscount?: number;
+
+  @Prop({ default: false })
+  billDiscountIsPercentage?: boolean;
+
+  @Prop({ default: 0 })
+  billDiscountValue?: number;
 }
 
 export const OrderSchema = SchemaFactory.createForClass(Order);

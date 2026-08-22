@@ -26,6 +26,12 @@ interface Props {
   paymentType: string;
   cashGiven: number;
   balance: number;
+  subtotal: number;
+  discountValue: number;
+  grandTotal: number;
+  billDiscount?: number | "";
+  billDiscountIsPercentage?: boolean;
+  onPrint: () => void;
   setCustomerName: (val: string) => void;
   setPhoneNumber: (val: string) => void;
   setPaymentType: (val: string) => void;
@@ -41,6 +47,12 @@ export default function CheckoutModal({
   paymentType,
   cashGiven,
   balance,
+  subtotal,
+  discountValue,
+  grandTotal,
+  billDiscount = "",
+  billDiscountIsPercentage = false,
+  onPrint,
   setCustomerName,
   setPhoneNumber,
   setPaymentType,
@@ -69,8 +81,6 @@ export default function CheckoutModal({
     }
     return baseTotal;
   };
-
-  const grandTotal = cart.reduce((sum, item) => sum + calculateItemTotal(item), 0);
 
   const paymentMethods = [
     { id: "Cash", label: "Cash", icon: <FaMoneyBillWave size={24} />, color: "emerald" },
@@ -210,8 +220,22 @@ export default function CheckoutModal({
                 <div className="space-y-4 pt-6 border-t border-slate-200 border-dashed">
                   <div className="flex justify-between items-center px-2">
                     <span className="text-slate-400 font-bold text-xs uppercase tracking-widest">Subtotal</span>
-                    <span className="text-slate-500 font-black text-sm">Rs. {grandTotal.toFixed(2)}</span>
+                    <span className="text-slate-500 font-black text-sm">Rs. {subtotal.toFixed(2)}</span>
                   </div>
+
+                  {discountValue > 0 && (
+                    <div className="flex justify-between items-center px-2">
+                      <span className="text-rose-500 font-bold text-xs uppercase tracking-widest">
+                        Bill Discount
+                        {billDiscount !== "" && Number(billDiscount) > 0
+                          ? ` (${billDiscount}${billDiscountIsPercentage ? "%" : " Rs."})`
+                          : ""}
+                      </span>
+                      <span className="text-rose-600 font-black text-sm">
+                        -Rs. {discountValue.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
                   
                   <div className="bg-white rounded-[2rem] p-6 shadow-xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-50 rounded-full blur-2xl -mr-12 -mt-12"></div>
@@ -346,7 +370,7 @@ export default function CheckoutModal({
           </button>
           
           <button
-            onClick={() => window.print()}
+            onClick={onPrint}
             className="px-8 py-5 bg-white border-2 border-slate-100 hover:border-indigo-600 text-slate-400 hover:text-indigo-600 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 active:scale-95 group shadow-sm"
           >
             <FaPrint size={18} />

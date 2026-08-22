@@ -11,16 +11,21 @@ import {
   FIXED_EXPENSE_CATEGORIES,
   currentMonthKey,
   fetchExpenses,
-  fetchReportData,
+  fetchFullReportData,
   formatCurrency,
   formatDate,
   formatMonthLabel,
+  getFreeItemsInRange,
+  getOrderDiscountsInRange,
   isFixedExpenseActiveInMonth,
   monthRange,
   sumDailyExpensesForMonth,
+  sumDiscountsForMonth,
   sumFixedExpensesForMonth,
+  sumFreeItemsExpenseForMonth,
   type Expense,
   type Order,
+  type Product,
 } from "@/lib/reports";
 
 const emptyFixedForm = () => ({
@@ -67,6 +72,7 @@ export default function MonthlyPnlPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [reportMonth, setReportMonth] = useState(() => currentMonthKey());
   const [fixedForm, setFixedForm] = useState(emptyFixedForm);
@@ -76,10 +82,11 @@ export default function MonthlyPnlPage() {
   const loadData = async () => {
     try {
       const [reportData, expenseData] = await Promise.all([
-        fetchReportData(),
+        fetchFullReportData(),
         fetchExpenses(),
       ]);
       setOrders(reportData.orders);
+      setProducts(reportData.products);
       setExpenses(expenseData);
     } catch (error) {
       console.error(error);
@@ -115,7 +122,15 @@ export default function MonthlyPnlPage() {
 
     const dailyExpenses = sumDailyExpensesForMonth(expenses, reportMonth);
     const fixedExpenses = sumFixedExpensesForMonth(expenses, reportMonth);
-    const totalExpenses = dailyExpenses + fixedExpenses;
+    const freeItemsExpense = sumFreeItemsExpenseForMonth(
+      orders,
+      products,
+      reportMonth
+    );
+    const freeItemRows = getFreeItemsInRange(orders, products, { start, end });
+    const discountSummary = sumDiscountsForMonth(orders, reportMonth);
+    const discountRows = getOrderDiscountsInRange(orders, { start, end });
+    const totalExpenses = dailyExpenses + fixedExpenses + freeItemsExpense;
     const netProfit = revenue - totalExpenses;
     const netMargin = revenue > 0 ? (netProfit / revenue) * 100 : 0;
 
@@ -131,12 +146,34 @@ export default function MonthlyPnlPage() {
       .filter((e) => isFixedExpenseActiveInMonth(e, reportMonth))
       .sort((a, b) => a.title.localeCompare(b.title));
 
-    const categoryRows = buildCategoryTotals(expenses, reportMonth);
+    const recordedCategoryRows = buildCategoryTotals(expenses, reportMonth);
+    const categoryRows = [
+      ...recordedCategoryRows,
+      ...(freeItemsExpense > 0
+        ? [
+            {
+              category: "Free Items",
+              daily: freeItemsExpense,
+              fixed: 0,
+              total: freeItemsExpense,
+            },
+          ]
+        : []),
+    ];
+    const categoryDailyTotal = categoryRows.reduce((sum, row) => sum + row.daily, 0);
+    const categoryFixedTotal = categoryRows.reduce((sum, row) => sum + row.fixed, 0);
+    const categoryGrandTotal = categoryRows.reduce((sum, row) => sum + row.total, 0);
+    const recordedExpenses = dailyExpenses + fixedExpenses;
 
     return {
       revenue,
       dailyExpenses,
       fixedExpenses,
+      recordedExpenses,
+      freeItemsExpense,
+      freeItemRows,
+      discountSummary,
+      discountRows,
       totalExpenses,
       netProfit,
       netMargin,
@@ -144,8 +181,11 @@ export default function MonthlyPnlPage() {
       dailyRows,
       fixedExpenseRows,
       categoryRows,
+      categoryDailyTotal,
+      categoryFixedTotal,
+      categoryGrandTotal,
     };
-  }, [orders, expenses, reportMonth, start, end]);
+  }, [orders, products, expenses, reportMonth, start, end]);
 
   const handleAddFixedExpense = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -211,9 +251,27 @@ export default function MonthlyPnlPage() {
       filename: buildExportFilename(`monthly-pnl-${reportMonth}`),
       summary: [
         { label: "Month", value: formatMonthLabel(reportMonth) },
-        { label: "Total Revenue", value: formatCurrency(report.revenue) },
-        { label: "Total Expenses", value: formatCurrency(report.totalExpenses) },
-        { label: "Net Profit", value: formatCurrency(report.netProfit) },
+        {
+          label: "Revenue",
+          value: formatCurrency(report.revenue),
+          highlight: true,
+        },
+        {
+          label: "Total Discounts",
+          value: formatCurrency(report.discountSummary.totalDiscount),
+          highlight: true,
+        },
+        {
+          label: "Total Expenses",
+          value: formatCurrency(report.totalExpenses),
+          highlight: true,
+        },
+        { label: "Free Items Expense", value: formatCurrency(report.freeItemsExpense) },
+        {
+          label: "Net Profit",
+          value: formatCurrency(report.netProfit),
+          highlight: true,
+        },
       ],
       sections: [
         {
@@ -221,10 +279,53 @@ export default function MonthlyPnlPage() {
           headers: ["Item", "Amount"],
           rows: [
             ["Revenue", formatCurrency(report.revenue)],
+            ["Item Discounts", formatCurrency(report.discountSummary.itemDiscount)],
+            ["Bill Discounts", formatCurrency(report.discountSummary.billDiscount)],
+            ["Total Discounts", formatCurrency(report.discountSummary.totalDiscount)],
             ["Daily Expenses", formatCurrency(report.dailyExpenses)],
+            ["Recorded Expenses", formatCurrency(report.recordedExpenses)],
+            ["Free Items Expense", formatCurrency(report.freeItemsExpense)],
             ["Fixed Expenses", formatCurrency(report.fixedExpenses)],
             ["Total Expenses", formatCurrency(report.totalExpenses)],
             ["Net Profit", formatCurrency(report.netProfit)],
+          ],
+        },
+        {
+          title: "Discounts",
+          headers: ["Date", "Invoice", "Item Discount", "Bill Discount", "Total"],
+          rows: [
+            ...report.discountRows.map((row) => [
+              formatDate(row.date),
+              row.invoiceId,
+              formatCurrency(row.itemDiscount),
+              formatCurrency(row.billDiscount),
+              formatCurrency(row.totalDiscount),
+            ]),
+            [
+              "Grand Total",
+              "",
+              formatCurrency(report.discountSummary.itemDiscount),
+              formatCurrency(report.discountSummary.billDiscount),
+              formatCurrency(report.discountSummary.totalDiscount),
+            ],
+          ],
+        },
+        {
+          title: "Free Items",
+          headers: ["Product", "Qty", "Selling Price", "Amount"],
+          rows: [
+            ...report.freeItemRows.map((item) => [
+              item.name,
+              item.quantity,
+              formatCurrency(item.sellingPrice),
+              formatCurrency(item.amount),
+            ]),
+            [
+              "Grand Total",
+              "",
+              "",
+              formatCurrency(report.freeItemsExpense),
+            ],
           ],
         },
         {
@@ -239,9 +340,9 @@ export default function MonthlyPnlPage() {
             ]),
             [
               "Grand Total",
-              formatCurrency(report.dailyExpenses),
-              formatCurrency(report.fixedExpenses),
-              formatCurrency(report.totalExpenses),
+              formatCurrency(report.categoryDailyTotal),
+              formatCurrency(report.categoryFixedTotal),
+              formatCurrency(report.categoryGrandTotal),
             ],
           ],
         },
@@ -303,10 +404,24 @@ export default function MonthlyPnlPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { label: "Revenue", value: formatCurrency(report.revenue), color: "text-indigo-600" },
+          {
+            label: "Total Discounts",
+            value: formatCurrency(report.discountSummary.totalDiscount),
+            color: "text-violet-600",
+            hint:
+              report.discountSummary.totalDiscount > 0
+                ? `Item ${formatCurrency(report.discountSummary.itemDiscount)} · Bill ${formatCurrency(report.discountSummary.billDiscount)}`
+                : undefined,
+          },
           { label: "Total Expenses", value: formatCurrency(report.totalExpenses), color: "text-rose-600" },
+          {
+            label: "Free Items Expense",
+            value: formatCurrency(report.freeItemsExpense),
+            color: "text-amber-600",
+          },
           {
             label: "Net Profit",
             value: formatCurrency(report.netProfit),
@@ -318,7 +433,12 @@ export default function MonthlyPnlPage() {
               {item.label}
             </p>
             <p className={`text-xl sm:text-2xl font-black ${item.color}`}>{item.value}</p>
-            <p className="text-[10px] text-slate-400 mt-1">{report.orderCount} orders</p>
+            {item.label === "Revenue" && (
+              <p className="text-[10px] text-slate-400 mt-1">{report.orderCount} orders</p>
+            )}
+            {"hint" in item && item.hint ? (
+              <p className="text-[10px] font-bold text-violet-600 mt-1">{item.hint}</p>
+            ) : null}
           </div>
         ))}
       </div>
@@ -326,8 +446,137 @@ export default function MonthlyPnlPage() {
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-slate-100">
           <h2 className="text-lg font-black text-slate-900">
+            Discounts — {formatMonthLabel(reportMonth)}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Item-level and bill-level reductions applied at checkout
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/80">
+                <th className="px-6 py-4">Date</th>
+                <th className="px-6 py-4">Invoice</th>
+                <th className="px-6 py-4 text-right">Item Discount</th>
+                <th className="px-6 py-4 text-right">Bill Discount</th>
+                <th className="px-6 py-4 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.discountRows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400">
+                    No discounts for this month.
+                  </td>
+                </tr>
+              ) : (
+                report.discountRows.map((row) => (
+                  <tr key={row.orderId} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <td className="px-6 py-4 font-medium text-slate-600">
+                      {formatDate(row.date)}
+                    </td>
+                    <td className="px-6 py-4 font-bold text-slate-900">{row.invoiceId}</td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(row.itemDiscount)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(row.billDiscount)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-violet-600">
+                      {formatCurrency(row.totalDiscount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {report.discountRows.length > 0 && (
+              <tfoot>
+                <tr className="bg-violet-50 font-black text-slate-900 border-t-2 border-violet-100">
+                  <td colSpan={2} className="px-6 py-4 uppercase text-[10px] tracking-widest">
+                    Grand Total
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(report.discountSummary.itemDiscount)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(report.discountSummary.billDiscount)}
+                  </td>
+                  <td className="px-6 py-4 text-right text-violet-700">
+                    {formatCurrency(report.discountSummary.totalDiscount)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">
+            Free Items — {formatMonthLabel(reportMonth)}
+          </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Items billed as free, valued at selling price
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 bg-slate-50/80">
+                <th className="px-6 py-4">Product</th>
+                <th className="px-6 py-4 text-right">Qty</th>
+                <th className="px-6 py-4 text-right">Selling Price</th>
+                <th className="px-6 py-4 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.freeItemRows.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                    No free items for this month.
+                  </td>
+                </tr>
+              ) : (
+                report.freeItemRows.map((item) => (
+                  <tr key={item.productId || item.name} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <td className="px-6 py-4 font-bold text-slate-900">{item.name}</td>
+                    <td className="px-6 py-4 text-right font-bold text-slate-700">{item.quantity}</td>
+                    <td className="px-6 py-4 text-right text-slate-600">
+                      {formatCurrency(item.sellingPrice)}
+                    </td>
+                    <td className="px-6 py-4 text-right font-bold text-amber-600">
+                      {formatCurrency(item.amount)}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+            {report.freeItemRows.length > 0 && (
+              <tfoot>
+                <tr className="bg-amber-50 font-black text-slate-900 border-t-2 border-amber-100">
+                  <td colSpan={3} className="px-6 py-4 uppercase text-[10px] tracking-widest">
+                    Grand Total
+                  </td>
+                  <td className="px-6 py-4 text-right text-amber-700">
+                    {formatCurrency(report.freeItemsExpense)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-slate-100">
+          <h2 className="text-lg font-black text-slate-900">
             Expenses by Category — {formatMonthLabel(reportMonth)}
           </h2>
+          <p className="text-xs text-slate-500 mt-1">
+            Recorded expenses plus free items (valued at selling price)
+          </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -348,7 +597,12 @@ export default function MonthlyPnlPage() {
                 </tr>
               ) : (
                 report.categoryRows.map((row) => (
-                  <tr key={row.category} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr
+                    key={row.category}
+                    className={`border-b border-slate-50 hover:bg-slate-50/50 ${
+                      row.category === "Free Items" ? "bg-amber-50/40" : ""
+                    }`}
+                  >
                     <td className="px-6 py-4 font-bold text-slate-900">{row.category}</td>
                     <td className="px-6 py-4 text-right text-slate-600">
                       {formatCurrency(row.daily)}
@@ -367,12 +621,14 @@ export default function MonthlyPnlPage() {
               <tfoot>
                 <tr className="bg-indigo-50 font-black text-slate-900 border-t-2 border-indigo-100">
                   <td className="px-6 py-4 uppercase text-[10px] tracking-widest">Grand Total</td>
-                  <td className="px-6 py-4 text-right">{formatCurrency(report.dailyExpenses)}</td>
+                  <td className="px-6 py-4 text-right">
+                    {formatCurrency(report.categoryDailyTotal)}
+                  </td>
                   <td className="px-6 py-4 text-right text-violet-700">
-                    {formatCurrency(report.fixedExpenses)}
+                    {formatCurrency(report.categoryFixedTotal)}
                   </td>
                   <td className="px-6 py-4 text-right text-rose-700">
-                    {formatCurrency(report.totalExpenses)}
+                    {formatCurrency(report.categoryGrandTotal)}
                   </td>
                 </tr>
               </tfoot>
@@ -534,24 +790,38 @@ export default function MonthlyPnlPage() {
           <h2 className="text-lg font-black text-slate-900">P&L Summary</h2>
           <p className="text-xs text-slate-500">Net Profit = Revenue − Total Expenses</p>
         </div>
-        <div className="grid sm:grid-cols-3 gap-px bg-slate-100">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-6 gap-px bg-slate-100">
           {[
             { label: "Revenue", value: report.revenue, color: "text-indigo-600" },
-            { label: "Total Expenses", value: report.totalExpenses, color: "text-rose-600" },
-            {
-              label: "Net Profit",
-              value: report.netProfit,
-              color: report.netProfit >= 0 ? "text-emerald-600" : "text-rose-700",
-            },
+            { label: "Item Discounts", value: report.discountSummary.itemDiscount, color: "text-violet-600" },
+            { label: "Bill Discounts", value: report.discountSummary.billDiscount, color: "text-violet-600" },
+            { label: "Daily Expenses", value: report.dailyExpenses, color: "text-rose-600" },
+            { label: "Free Items Expense", value: report.freeItemsExpense, color: "text-amber-600" },
+            { label: "Fixed Expenses", value: report.fixedExpenses, color: "text-violet-600" },
+            { label: "Total Expenses", value: report.totalExpenses, color: "text-rose-700" },
           ].map((item) => (
             <div key={item.label} className="bg-white p-5">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                 {item.label}
               </p>
               <p className={`text-lg font-black ${item.color}`}>{formatCurrency(item.value)}</p>
-              {item.label === "Net Profit" && (
-                <p className="text-xs text-slate-500 mt-1">{report.netMargin.toFixed(1)}% margin</p>
-              )}
+            </div>
+          ))}
+        </div>
+        <div className="grid sm:grid-cols-2 gap-px bg-slate-100 border-t border-slate-100">
+          {[
+            {
+              label: "Net Profit",
+              value: report.netProfit,
+              color: report.netProfit >= 0 ? "text-emerald-600" : "text-rose-700",
+            },
+          ].map((item) => (
+            <div key={item.label} className="bg-white p-5 sm:col-span-2">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                {item.label}
+              </p>
+              <p className={`text-lg font-black ${item.color}`}>{formatCurrency(item.value)}</p>
+              <p className="text-xs text-slate-500 mt-1">{report.netMargin.toFixed(1)}% margin</p>
             </div>
           ))}
         </div>

@@ -26,7 +26,7 @@ function qtyFromOrders(
     return (
       sum +
       order.items.reduce((itemSum, item) => {
-        if (item.productId !== productId || item.free) return itemSum;
+        if (item.productId !== productId) return itemSum;
         return itemSum + item.quantity;
       }, 0)
     );
@@ -81,13 +81,14 @@ export function buildDailySalesSummary(
       (date) => date > selectedDate
     );
 
-    const inHandStock = Math.max(
+    const inHandAtEnd = Math.max(
       0,
       product.stock - purchasesAfterDay + salesAfterDay
     );
-    const openingStock = Math.max(0, inHandStock + salesOnDay - purchasesOnDay);
+    const openingStock = Math.max(0, inHandAtEnd + salesOnDay - purchasesOnDay);
     const totalStock = openingStock + purchasesOnDay;
-    const totalValue = inHandStock * product.price;
+    const inHandStock = Math.max(0, totalStock - salesOnDay);
+    const totalValue = salesOnDay * product.price;
 
     const existing = categoryMap.get(category) || {
       category,

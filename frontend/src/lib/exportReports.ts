@@ -6,11 +6,18 @@ export type ExportSection = {
   mergeCategoryColumn?: boolean;
 };
 
+export type ExportSummaryItem = {
+  label: string;
+  value: string;
+  /** Highlight this row in PDF summary and matching section rows */
+  highlight?: boolean;
+};
+
 export type ExportReportPayload = {
   title: string;
   subtitle?: string;
   filename: string;
-  summary?: { label: string; value: string }[];
+  summary?: ExportSummaryItem[];
   sections: ExportSection[];
   /** PDF table header color theme (CSV exports are unchanged) */
   pdfTheme?: PdfReportThemeKey;
@@ -88,8 +95,42 @@ type PdfCell =
     };
 
 
+function normalizeLabel(label: string): string {
+  return label.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function isGrandTotalLabel(label: string): boolean {
   return label.toLowerCase().includes("grand total");
+}
+
+function isHighlightLabel(label: string, highlights: Set<string>): boolean {
+  const normalized = normalizeLabel(label);
+  for (const highlight of highlights) {
+    const normalizedHighlight = normalizeLabel(highlight);
+    if (
+      normalized === normalizedHighlight ||
+      normalized.includes(normalizedHighlight) ||
+      normalizedHighlight.includes(normalized)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function collectHighlightLabels(summary?: ExportSummaryItem[]): Set<string> {
+  const labels = new Set<string>();
+  summary?.forEach((item) => {
+    if (!item.highlight) return;
+    labels.add(item.label);
+    if (normalizeLabel(item.label) === "nettotal") {
+      labels.add("Grand Total (Net)");
+    }
+    if (normalizeLabel(item.label) === "revenue") {
+      labels.add("Total Revenue");
+    }
+  });
+  return labels;
 }
 
 function getFirstCellContent(row: (string | number)[] | PdfCell[]): string {
@@ -104,7 +145,7 @@ function isGrandTotalRow(row: (string | number)[] | PdfCell[]): boolean {
   return isGrandTotalLabel(getFirstCellContent(row));
 }
 
-function grandTotalPdfRow(
+function themedPdfRow(
   row: (string | number)[],
   theme: PdfReportTheme = DEFAULT_PDF_THEME
 ): PdfCell[] {
@@ -117,6 +158,20 @@ function grandTotalPdfRow(
       ...(index === 0 ? { valign: "middle" as const } : {}),
     },
   }));
+}
+
+function grandTotalPdfRow(
+  row: (string | number)[],
+  theme: PdfReportTheme = DEFAULT_PDF_THEME
+): PdfCell[] {
+  return themedPdfRow(row, theme);
+}
+
+function highlightPdfRow(
+  row: (string | number)[],
+  theme: PdfReportTheme = DEFAULT_PDF_THEME
+): PdfCell[] {
+  return themedPdfRow(row, theme);
 }
 
 function mergeCategoryColumnRows(
@@ -175,13 +230,18 @@ function mergeCategoryColumnRows(
 
 function prepareSectionRows(
   section: ExportSection,
-  pdfTheme: PdfReportTheme = DEFAULT_PDF_THEME
+  pdfTheme: PdfReportTheme = DEFAULT_PDF_THEME,
+  highlightLabels: Set<string> = new Set()
 ) {
   if (!section.mergeCategoryColumn) {
     const csvRows = section.rows;
-    const pdfRows = section.rows.map((row) =>
-      isGrandTotalRow(row) ? grandTotalPdfRow(row, pdfTheme) : row.map(String)
-    );
+    const pdfRows = section.rows.map((row) => {
+      if (isGrandTotalRow(row)) return grandTotalPdfRow(row, pdfTheme);
+      if (isHighlightLabel(getFirstCellContent(row), highlightLabels)) {
+        return highlightPdfRow(row, pdfTheme);
+      }
+      return row.map(String);
+    });
     return { csvRows, pdfRows };
   }
   return mergeCategoryColumnRows(section.rows, pdfTheme);
@@ -274,19 +334,62 @@ export async function exportReportPdf(payload: ExportReportPayload) {
   y += 10;
   doc.setTextColor(0);
 
+  const highlightLabels = collectHighlightLabels(payload.summary);
+
   if (payload.summary?.length) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(11);
     doc.text("Summary", 14, y);
-    y += 6;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
+    y += 2;
 
-    payload.summary.forEach((item) => {
-      doc.text(`${item.label}: ${item.value}`, 14, y);
-      y += 5;
+    const summaryRows = payload.summary.map((item) =>
+      item.highlight ? highlightPdfRow([item.label, item.value], pdfTheme) : [item.label, item.value]
+    );
+
+    autoTable(doc, {
+      startY: y + 2,
+      head: [["Metric", "Value"]],
+      body: summaryRows as unknown as Parameters<typeof autoTable>[1]["body"],
+      theme: "grid",
+      styles: { fontSize: 9, cellPadding: 2.5, valign: "middle" },
+      headStyles: {
+        fillColor: pdfTheme.header,
+        textColor: 255,
+        fontStyle: "bold",
+      },
+      columnStyles: {
+        0: { cellWidth: 72 },
+        1: { halign: "right" },
+      },
+      margin: { left: 14, right: 14 },
+      tableWidth: pageWidth - 28,
+      didParseCell: (hookData) => {
+        if (hookData.section !== "body") return;
+        const sourceRow = summaryRows[hookData.row.index];
+        if (!sourceRow || !Array.isArray(sourceRow)) return;
+
+        const sourceCell = sourceRow[hookData.column.index];
+        if (
+          typeof sourceCell === "object" &&
+          sourceCell !== null &&
+          "styles" in sourceCell &&
+          sourceCell.styles
+        ) {
+          if (sourceCell.styles.fillColor) {
+            hookData.cell.styles.fillColor = sourceCell.styles.fillColor;
+          }
+          if (sourceCell.styles.textColor) {
+            hookData.cell.styles.textColor = sourceCell.styles.textColor;
+          }
+          if (sourceCell.styles.fontStyle) {
+            hookData.cell.styles.fontStyle = sourceCell.styles.fontStyle;
+          }
+        }
+      },
     });
-    y += 4;
+
+    const docWithSummary = doc as typeof doc & { lastAutoTable?: { finalY: number } };
+    y = (docWithSummary.lastAutoTable?.finalY ?? y) + 8;
   }
 
   payload.sections.forEach((section) => {
@@ -300,7 +403,7 @@ export async function exportReportPdf(payload: ExportReportPayload) {
     doc.text(section.title, 14, y);
     y += 2;
 
-    const { pdfRows } = prepareSectionRows(section, pdfTheme);
+    const { pdfRows } = prepareSectionRows(section, pdfTheme, highlightLabels);
 
     autoTable(doc, {
       startY: y + 2,
@@ -318,7 +421,28 @@ export async function exportReportPdf(payload: ExportReportPayload) {
       didParseCell: (hookData) => {
         if (hookData.section !== "body") return;
         const sourceRow = pdfRows[hookData.row.index];
-        if (!sourceRow || !isGrandTotalRow(sourceRow)) return;
+        if (!sourceRow) return;
+
+        const sourceCell = sourceRow[hookData.column.index];
+        if (
+          typeof sourceCell === "object" &&
+          sourceCell !== null &&
+          "styles" in sourceCell &&
+          sourceCell.styles
+        ) {
+          if (sourceCell.styles.fillColor) {
+            hookData.cell.styles.fillColor = sourceCell.styles.fillColor;
+          }
+          if (sourceCell.styles.textColor) {
+            hookData.cell.styles.textColor = sourceCell.styles.textColor;
+          }
+          if (sourceCell.styles.fontStyle) {
+            hookData.cell.styles.fontStyle = sourceCell.styles.fontStyle;
+          }
+          return;
+        }
+
+        if (!isGrandTotalRow(sourceRow)) return;
 
         hookData.cell.styles.fillColor = pdfTheme.grandTotalFill;
         hookData.cell.styles.textColor = pdfTheme.grandTotalText;

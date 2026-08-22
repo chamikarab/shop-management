@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import CheckoutModal from "@/components/CheckoutModal";
 import Invoice from "@/components/Invoice";
+import { printThermalReceipt, type ThermalReceiptData } from "@/lib/printThermalReceipt";
 import { 
   FaSearch, FaTags, FaBox, FaTrash, FaPlus, FaMinus, 
   FaShoppingCart, FaBeer, FaWineBottle, FaChevronRight, 
@@ -27,6 +28,18 @@ interface Product {
   free?: boolean;
 }
 
+type PrintInvoiceData = {
+  cart: Product[];
+  invoiceDate: string;
+  invoiceId: string;
+  grandTotal: number;
+  cashGiven: number;
+  discountValue: number;
+  balance: number;
+  paymentType: string;
+  cashier: string;
+};
+
 export default function BillingPage() {
   const [search, setSearch] = useState("");
   const [cart, setCart] = useState<Product[]>([]);
@@ -38,8 +51,8 @@ export default function BillingPage() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [paymentType, setPaymentType] = useState("Cash");
   const [cashGiven, setCashGiven] = useState<number>(0);
-  const [invoiceDate, setInvoiceDate] = useState<string>("");
-  const [invoiceId, setInvoiceId] = useState<string>("");
+  const [cashierName, setCashierName] = useState("Cashier");
+  const [printInvoice, setPrintInvoice] = useState<PrintInvoiceData | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPackaging, setSelectedPackaging] = useState<string | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -103,8 +116,17 @@ export default function BillingPage() {
   }, []);
 
   useEffect(() => {
-    setInvoiceDate(new Date().toLocaleString());
-    setInvoiceId("000" + Math.floor(Math.random() * 100000));
+    const fetchCashier = async () => {
+      try {
+        const res = await fetch("/api/me", { credentials: "include" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data?.user?.name) setCashierName(data.user.name);
+      } catch {
+        // keep default cashier label
+      }
+    };
+    fetchCashier();
   }, []);
 
   const filteredProducts = products.filter((p) =>
@@ -248,6 +270,20 @@ export default function BillingPage() {
   const grandTotal = totalBeforeDiscount - discountValue;
   const balance = cashGiven - grandTotal;
 
+  const buildReceiptPrintData = (
+    overrides?: Partial<PrintInvoiceData>
+  ): ThermalReceiptData => ({
+    cart: (overrides?.cart ?? printInvoice?.cart ?? cart).map((item) => ({ ...item })),
+    invoiceDate: overrides?.invoiceDate ?? printInvoice?.invoiceDate ?? new Date().toISOString(),
+    invoiceId: overrides?.invoiceId ?? printInvoice?.invoiceId ?? "PREVIEW",
+    grandTotal: overrides?.grandTotal ?? printInvoice?.grandTotal ?? grandTotal,
+    cashGiven: overrides?.cashGiven ?? printInvoice?.cashGiven ?? cashGiven,
+    discountValue: overrides?.discountValue ?? printInvoice?.discountValue ?? discountValue,
+    balance: overrides?.balance ?? printInvoice?.balance ?? balance,
+    paymentType: overrides?.paymentType ?? printInvoice?.paymentType ?? paymentType,
+    cashier: overrides?.cashier ?? printInvoice?.cashier ?? cashierName,
+  });
+
   const confirmOrder = async () => {
     try {
       const res = await fetch(`${apiUrl}/orders`, {
@@ -262,25 +298,48 @@ export default function BillingPage() {
           paymentType,
           cashGiven,
           balance,
+          billDiscount: Number(discount) || 0,
+          billDiscountIsPercentage: isPercentage,
+          billDiscountValue: discountValue,
         }),
       });
 
       if (!res.ok) throw new Error("Failed to place order");
 
+      const result = await res.json();
+      const order = result?.data;
+      const nowIso = order?.invoiceDate || order?.createdAt || new Date().toISOString();
+      const snapshot: PrintInvoiceData = {
+        cart: cart.map((item) => ({ ...item })),
+        invoiceId: order?.invoiceId || "PENDING",
+        invoiceDate: nowIso,
+        grandTotal,
+        cashGiven,
+        discountValue,
+        balance,
+        paymentType,
+        cashier: cashierName,
+      };
+
+      setPrintInvoice(snapshot);
+
       toast.success("Order placed successfully!");
 
-      setTimeout(() => {
-        window.print();
-        setTimeout(() => {
-          setCart([]);
-          setDiscount("");
-          setIsPercentage(false);
-          setShowModal(false);
-          setCustomerName("");
-          setPhoneNumber("");
-          setCashGiven(0);
-        }, 500);
-      }, 200);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(async () => {
+          await printThermalReceipt(buildReceiptPrintData(snapshot));
+          setTimeout(() => {
+            setPrintInvoice(null);
+            setCart([]);
+            setDiscount("");
+            setIsPercentage(false);
+            setShowModal(false);
+            setCustomerName("");
+            setPhoneNumber("");
+            setCashGiven(0);
+          }, 500);
+        });
+      });
     } catch (err) {
       console.error("Checkout error:", err);
       toast.error("Checkout failed");
@@ -829,22 +888,31 @@ export default function BillingPage() {
           cashGiven={cashGiven}
           setCashGiven={setCashGiven}
           balance={balance}
+          subtotal={totalBeforeDiscount}
+          discountValue={discountValue}
+          grandTotal={grandTotal}
+          billDiscount={discount}
+          billDiscountIsPercentage={isPercentage}
+          onPrint={() => void printThermalReceipt(buildReceiptPrintData())}
           onCancel={() => setShowModal(false)}
           onConfirm={confirmOrder}
         />
       )}
 
       {/* Invoice (Hidden, for printing) */}
-      <Invoice
-        cart={cart}
-        invoiceDate={invoiceDate}
-        invoiceId={invoiceId}
-        grandTotal={grandTotal}
-        cashGiven={cashGiven}
-        discountValue={discountValue}
-        balance={balance}
-        paymentType={paymentType}
-      />
+      {(printInvoice || cart.length > 0) && (
+        <Invoice
+          cart={printInvoice?.cart ?? cart}
+          invoiceDate={printInvoice?.invoiceDate ?? new Date().toISOString()}
+          invoiceId={printInvoice?.invoiceId ?? "PREVIEW"}
+          grandTotal={printInvoice?.grandTotal ?? grandTotal}
+          cashGiven={printInvoice?.cashGiven ?? cashGiven}
+          discountValue={printInvoice?.discountValue ?? discountValue}
+          balance={printInvoice?.balance ?? balance}
+          paymentType={printInvoice?.paymentType ?? paymentType}
+          cashier={printInvoice?.cashier ?? cashierName}
+        />
+      )}
     </div>
   );
 }

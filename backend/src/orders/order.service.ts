@@ -1,15 +1,54 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { InjectConnection, InjectModel } from '@nestjs/mongoose';
+import { Connection, Model } from 'mongoose';
 import { Order, OrderDocument } from './order.schema';
 import { Product, ProductDocument } from '../product/product.schema';
 
 @Injectable()
-export class OrderService {
+export class OrderService implements OnModuleInit {
   constructor(
     @InjectModel(Order.name) private orderModel: Model<OrderDocument>,
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
+    @InjectConnection() private connection: Connection,
   ) {}
+
+  async onModuleInit() {
+    await this.reconcileHistoricalFreeStock();
+  }
+
+  private async reconcileHistoricalFreeStock() {
+    const flags = this.connection.collection('system_flags');
+    const flagKey = 'free_stock_reconciled';
+    const existing = await flags.findOne({ key: flagKey });
+    if (existing) return;
+
+    const orders = await this.orderModel.find().lean().exec();
+    const freeByProduct = new Map<string, number>();
+
+    for (const order of orders) {
+      for (const item of order.items) {
+        if (!item.free) continue;
+        const productId = String(item.productId);
+        freeByProduct.set(
+          productId,
+          (freeByProduct.get(productId) || 0) + item.quantity,
+        );
+      }
+    }
+
+    for (const [productId, qty] of freeByProduct.entries()) {
+      if (qty <= 0) continue;
+      await this.productModel.findByIdAndUpdate(productId, {
+        $inc: { stock: -qty },
+      });
+    }
+
+    await flags.updateOne(
+      { key: flagKey },
+      { $set: { key: flagKey, reconciledAt: new Date() } },
+      { upsert: true },
+    );
+  }
 
   // Create a new order with stock deduction
   async create(orderData: CreateOrderInput) {
@@ -33,18 +72,19 @@ export class OrderService {
       balance: orderData.balance || null,
       invoiceId: orderData.invoiceId,
       invoiceDate: orderData.invoiceDate,
+      billDiscount: orderData.billDiscount ?? 0,
+      billDiscountIsPercentage: orderData.billDiscountIsPercentage ?? false,
+      billDiscountValue: orderData.billDiscountValue ?? 0,
     });
 
     const savedOrder = await order.save();
 
     for (const item of items) {
-      if (!item.free) {
-        await this.productModel.findByIdAndUpdate(
-          item.productId,
-          { $inc: { stock: -item.quantity } },
-          { new: true },
-        );
-      }
+      await this.productModel.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stock: -item.quantity } },
+        { new: true },
+      );
     }
 
     return savedOrder;
@@ -64,24 +104,20 @@ export class OrderService {
     if (!existingOrder) throw new NotFoundException('Order not found');
 
     for (const item of existingOrder.items) {
-      if (!item.free) {
-        await this.productModel.findByIdAndUpdate(
-          item.productId,
-          { $inc: { stock: item.quantity } },
-          { new: true },
-        );
-      }
+      await this.productModel.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stock: item.quantity } },
+        { new: true },
+      );
     }
 
     if (updateData.items) {
       for (const item of updateData.items) {
-        if (!item.free) {
-          await this.productModel.findByIdAndUpdate(
-            item.id,
-            { $inc: { stock: -item.quantity } },
-            { new: true },
-          );
-        }
+        await this.productModel.findByIdAndUpdate(
+          item.id,
+          { $inc: { stock: -item.quantity } },
+          { new: true },
+        );
       }
 
       const mappedItems = updateData.items.map((item) => ({
@@ -117,13 +153,11 @@ export class OrderService {
     if (!order) throw new NotFoundException('Order not found');
 
     for (const item of order.items) {
-      if (!item.free) {
-        await this.productModel.findByIdAndUpdate(
-          item.productId,
-          { $inc: { stock: item.quantity } },
-          { new: true },
-        );
-      }
+      await this.productModel.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stock: item.quantity } },
+        { new: true },
+      );
     }
 
     await order.deleteOne();
@@ -152,4 +186,7 @@ type CreateOrderInput = {
   paymentType: string;
   cashGiven?: number;
   balance?: number;
+  billDiscount?: number;
+  billDiscountIsPercentage?: boolean;
+  billDiscountValue?: number;
 };
